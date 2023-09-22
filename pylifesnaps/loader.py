@@ -37,43 +37,29 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
+        if str(user_id) not in self.get_user_ids():
+            raise ValueError(f"f{user_id} does not exist in DB.")
         if not isinstance(user_id, ObjectId):
             user_id = ObjectId(user_id)
         start_date = pylifesnaps.utils.convert_to_datetime(start_date)
         end_date = pylifesnaps.utils.convert_to_datetime(end_date)
+        _DATE_OF_SLEEP_KEY = f"{pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY}"
+        _DATE_OF_SLEEP_KEY += f".{pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY}"
         if (not (start_date is None)) and (not (end_date is None)):
+            if end_date < start_date:
+                raise ValueError(f"{end_date} must be greater than {start_date}")
             date_filter = {
                 "$match": {
                     "$and": [
-                        {
-                            f"{pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY}.{pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATE_OF_SLEEP_KEY}": {
-                                "$gte": start_date
-                            }
-                        },
-                        {
-                            f"{pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY}.{pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATE_OF_SLEEP_KEY}": {
-                                "$lte": end_date
-                            }
-                        },
+                        {_DATE_OF_SLEEP_KEY: {"$gte": start_date}},
+                        {_DATE_OF_SLEEP_KEY: {"$lte": end_date}},
                     ]
                 }
             }
         elif (start_date is None) and (not (end_date is None)):
-            date_filter = {
-                "$match": {
-                    f"{pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY}.{pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATE_OF_SLEEP_KEY}": {
-                        "$lte": end_date
-                    }
-                }
-            }
+            date_filter = {"$match": {_DATE_OF_SLEEP_KEY: {"$lte": end_date}}}
         elif (not (start_date is None)) and (end_date is None):
-            date_filter = {
-                "$match": {
-                    f"{pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY}.{pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATE_OF_SLEEP_KEY}": {
-                        "$gte": start_date
-                    }
-                }
-            }
+            date_filter = {"$match": {_DATE_OF_SLEEP_KEY: {"$gte": start_date}}}
         else:
             date_filter = {"$match": {}}
         filtered_coll = self.fitbit_collection.aggregate(
@@ -86,9 +72,9 @@ class LifeSnapsLoader:
                 },
                 {
                     "$addFields": {
-                        f"{pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY}.{pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATE_OF_SLEEP_KEY}": {
+                        _DATE_OF_SLEEP_KEY: {
                             "$convert": {
-                                "input": f"${pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY}.{pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATE_OF_SLEEP_KEY}",
+                                "input": f"${_DATE_OF_SLEEP_KEY}",
                                 "to": "date",
                             }
                         }
@@ -136,11 +122,30 @@ class LifeSnapsLoader:
                     ] = stage_values_value
 
             sleep_summary_df = pd.concat((sleep_summary_df, temp_df), ignore_index=True)
-        sleep_summary_df = sleep_summary_df.sort_values(
-            by=pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATE_OF_SLEEP_KEY
-        ).reset_index(drop=True)
-        sleep_summary_df = sleep_summary_df.loc[:, []]
+        if len(sleep_summary_df) > 0:
+            sleep_summary_df = sleep_summary_df.sort_values(
+                by=pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY
+            ).reset_index(drop=True)
+            for idx, col in enumerate(
+                [
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LOG_ID_KEY,
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY,
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY,
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_END_TIME_KEY,
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DURATION_KEY,
+                ]
+            ):
+                sleep_summary_df.insert(
+                    idx,
+                    col,
+                    sleep_summary_df.pop(col),
+                )
         return sleep_summary_df
 
     def load_sleep_stages(self, user_id, start_date, end_date):
         pass
+
+
+"""
+
+"""
