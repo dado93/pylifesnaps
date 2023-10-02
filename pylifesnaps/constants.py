@@ -1,4 +1,13 @@
+_METRIC_SPO2 = "daily-spo2"
+_METRIC_COMP_TEMP = "computed-temprature"
+_METRIC_DEVICE_TEMP = "device-temperature"
+_METRICE_DAILY_HRV_SUMMARY = "daily-hrv-summary"
+
+##################################
+#           Database             #
+##################################
 _DB_NAME = "rais_anonymized"
+
 ##################################
 #       FitBit Collection        #
 ##################################
@@ -17,6 +26,22 @@ _DB_FITBIT_COLLECTION_DATA_TYPE_DAILY_HRV_SUMMARY_VALUE = (
 )
 _DB_FITBIT_COLLECTION_DATA_TYPE_DAILY_SPO2_VALUE = "Daily SpO2"
 _DB_FITBIT_COLLECTION_DATA_TYPE_DEVICE_TEMP_VALUE = "Device Temperature"
+_DB_FITBIT_COLLECTION_DATA_TYPE_AFIB_ECG_READINGS_VALUE = "Afib ECG Readings"
+_DB_FITBIT_COLLECTION_DATA_TYPE_DAILY_HRV_SUMMARY_VALUE = (
+    "Daily Heart Rate Variability Summary"
+)
+_DB_FITBIT_COLLECTION_DATA_TYPE_HRV_DETAILS_VALUE = "Heart Rate Variability Details"
+_DB_FITBIT_COLLECTION_DATA_TYPE_HRV_HISTOGRAM_VALUE = "Heart Rate Variability Histogram"
+_DB_FITBIT_COLLECTION_DATA_TYPE_PROFILE_VALUE = "Profile"
+
+"""
+'Respiratory Rate Summary', 'Stress Score', 
+'Wrist Temperature', 'altitude', 'badge', 'calories', 'demographic_vo2_max', 'distance', 'estimated_oxygen_variation', 
+'exercise', 'heart_rate', 'journal_entries', 'lightly_active_minutes', 'mindfulness_eda_data_sessions', 'mindfulness_goals', 
+'mindfulness_sessions', 'moderately_active_minutes', 'resting_heart_rate', 'sedentary_minutes', 'sleep', 'steps',
+'time_in_heart_rate_zones', 'very_active_minutes', 'water_logs']
+"""
+
 
 # --------------------------------#
 #         Sleep Documents         #
@@ -70,3 +95,21 @@ _DB_FITBIT_COLLECTION_SLEEP_DATA_ASLEEP_MIN_KEY = "asleepMinutes"
 # ---------------------------------------------#
 _DB_FITBIT_COLLECTION_COMP_TEMP_SLEEP_START_KEY = "sleep_start"
 _DB_FITBIT_COLLECTION_COMP_TEMP_SLEEP_END_KEY = "sleep_end"
+
+# --------------------------------#
+#          SPo2 Documents         #
+# --------------------------------#
+_DB_FITBIT_COLLECTION_SPO2_TIMESTAMP_KEY = "timestamp"
+
+# --------------------------------#
+#  Device Temperature Documents   #
+# --------------------------------#
+_DB_FITBIT_COLLECTION_DEVICE_TEMP_RECORDED_TIME_KEY = "recorded_time"
+
+# --------------------------------#
+#   Daily HRV Summary Documents   #
+# --------------------------------#
+_DB_FITBIT_COLLECTION_DAILY_HRV_SUMMARY_TIMESTAMP_KEY = "timestamp"
+_DB_FITBIT_COLLECTION_DAILY_HRV_SUMMARY_RMSSD_KEY = "rmssd"
+_DB_FITBIT_COLLECTION_DAILY_HRV_SUMMARY_NREMHR_KEY = "nremhr"
+_DB_FITBIT_COLLECTION_DAILY_HRV_SUMMARY_ENTROPY_KEY = "entropy"

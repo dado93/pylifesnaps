@@ -8,14 +8,28 @@ from bson.objectid import ObjectId
 import pylifesnaps.constants
 import pylifesnaps.utils
 
-"""
-['Afib ECG Readings', 'Computed Temperature', 'Daily Heart Rate Variability Summary', 'Daily SpO2', 'Device Temperature', 
-'Heart Rate Variability Details', 'Heart Rate Variability Histogram', 'Profile', 'Respiratory Rate Summary', 'Stress Score', 
-'Wrist Temperature', 'altitude', 'badge', 'calories', 'demographic_vo2_max', 'distance', 'estimated_oxygen_variation', 
-'exercise', 'heart_rate', 'journal_entries', 'lightly_active_minutes', 'mindfulness_eda_data_sessions', 'mindfulness_goals', 
-'mindfulness_sessions', 'moderately_active_minutes', 'resting_heart_rate', 'sedentary_minutes', 'sleep', 'steps',
-'time_in_heart_rate_zones', 'very_active_minutes', 'water_logs']
-"""
+_METRIC_DICT = {
+    pylifesnaps.constants._METRIC_COMP_TEMP: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_COMP_TEMP_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_COMP_TEMP_SLEEP_START_KEY,
+        "end_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_COMP_TEMP_SLEEP_END_KEY,
+    },
+    pylifesnaps.constants._METRIC_SPO2: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_DAILY_SPO2_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_SPO2_TIMESTAMP_KEY,
+        "end_date_key": None,
+    },
+    pylifesnaps.constants._METRIC_DEVICE_TEMP: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_DEVICE_TEMP_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DEVICE_TEMP_RECORDED_TIME_KEY,
+        "end_date_key": None,
+    },
+    pylifesnaps.constants._METRICE_DAILY_HRV_SUMMARY: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_DAILY_HRV_SUMMARY_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DAILY_HRV_SUMMARY_TIMESTAMP_KEY,
+        "end_date_key": None,
+    },
+}
 
 
 class LifeSnapsLoader:
@@ -83,7 +97,7 @@ class LifeSnapsLoader:
         end_date = pylifesnaps.utils.convert_to_datetime(end_date)
         date_of_sleep_key = f"{pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY}"
         date_of_sleep_key += f".{pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY}"
-        date_filter = self._get_filter_start_and_end_date_time(
+        date_filter = self._get_start_and_end_date_time_filter_dict(
             start_date_key=date_of_sleep_key,
             start_date=start_date,
             end_date=end_date,
@@ -218,7 +232,7 @@ class LifeSnapsLoader:
         sleep_start_key += (
             f".{pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY}"
         )
-        date_filter = self._get_filter_start_and_end_date_time(
+        date_filter = self._get_start_and_end_date_time_filter_dict(
             start_date_key=sleep_start_key,
             end_date_key=None,
             start_date=start_date,
@@ -413,6 +427,72 @@ class LifeSnapsLoader:
             )
         return sleep_stage_df
 
+    def load_metric(
+        self,
+        metric: str,
+        user_id: Union[ObjectId, str],
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    ) -> pd.DataFrame:
+        if str(user_id) not in self.get_user_ids():
+            raise ValueError(f"f{user_id} does not exist in DB.")
+        user_id = pylifesnaps.utils.check_user_id(user_id)
+        start_date = pylifesnaps.utils.convert_to_datetime(start_date)
+        end_date = pylifesnaps.utils.convert_to_datetime(end_date)
+
+        metric_start_key = _METRIC_DICT[metric]["start_date_key"]
+        metric_end_key = _METRIC_DICT[metric]["end_date_key"]
+        metric_start_date_key_db = (
+            pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
+            + "."
+            + metric_start_key
+        )
+        if metric_end_key is None:
+            metric_end_date_key_db = None
+        else:
+            metric_end_date_key_db = (
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
+                + "."
+                + metric_end_key
+            )
+
+        date_filter_dict = self._get_start_and_end_date_time_filter_dict(
+            start_date_key=metric_start_date_key_db,
+            end_date_key=metric_end_date_key_db,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        date_conversion_dict = self._get_date_conversion_dict(
+            start_date_key=metric_start_date_key_db, end_date_key=metric_end_date_key_db
+        )
+        filtered_coll = self.fitbit_collection.aggregate(
+            [
+                {
+                    "$match": {
+                        pylifesnaps.constants._DB_FITBIT_COLLECTION_TYPE_KEY: _METRIC_DICT[
+                            metric
+                        ][
+                            "metric_key"
+                        ],
+                        pylifesnaps.constants._DB_FITBIT_COLLECTION_ID_KEY: user_id,
+                    }
+                },
+                date_conversion_dict,
+                date_filter_dict,
+            ]
+        )
+        metric_df = pd.DataFrame()
+        for entry in filtered_coll:
+            temp_df = pd.DataFrame(
+                entry[pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY], index=[0]
+            )
+            metric_df = pd.concat((metric_df, temp_df), ignore_index=True)
+        if len(metric_df) > 0:
+            metric_df = metric_df.sort_values(by=metric_start_key).reset_index(
+                drop=True
+            )
+        return metric_df
+
     def load_computed_temperature(
         self,
         user_id: Union[ObjectId, str],
@@ -429,8 +509,6 @@ class LifeSnapsLoader:
 
         Parameters
         ----------
-        user_id : Union[ObjectId, str]
-            _description_
         user_id : ObjectId or str
             Unique identifier for the user.
         start_date : datetime.datetime or datetime.date or str or None, optional
@@ -448,64 +526,12 @@ class LifeSnapsLoader:
         ValueError
             If incorrect values for parameters are used.
         """
-        if str(user_id) not in self.get_user_ids():
-            raise ValueError(f"f{user_id} does not exist in DB.")
-        user_id = pylifesnaps.utils.check_user_id(user_id)
-        start_date = pylifesnaps.utils.convert_to_datetime(start_date)
-        end_date = pylifesnaps.utils.convert_to_datetime(end_date)
-        # Get sleep start key
-        sleep_start_key = pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
-        sleep_start_key += (
-            f".{pylifesnaps.constants._DB_FITBIT_COLLECTION_COMP_TEMP_SLEEP_START_KEY}"
-        )
-        # Get sleep end key
-        sleep_end_key = pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
-        sleep_end_key += (
-            f".{pylifesnaps.constants._DB_FITBIT_COLLECTION_COMP_TEMP_SLEEP_END_KEY}"
-        )
-        date_filter = self._get_filter_start_and_end_date_time(
-            start_date_key=sleep_start_key,
-            end_date_key=sleep_end_key,
+        return self.load_metric(
+            pylifesnaps.constants._METRIC_COMP_TEMP,
+            user_id=user_id,
             start_date=start_date,
             end_date=end_date,
         )
-        filtered_coll = self.fitbit_collection.aggregate(
-            [
-                {
-                    "$match": {
-                        pylifesnaps.constants._DB_FITBIT_COLLECTION_TYPE_KEY: pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_COMP_TEMP_VALUE,
-                        pylifesnaps.constants._DB_FITBIT_COLLECTION_ID_KEY: user_id,
-                    }
-                },
-                {
-                    "$addFields": {
-                        sleep_start_key: {
-                            "$convert": {
-                                "input": f"${sleep_start_key}",
-                                "to": "date",
-                            }
-                        },
-                        sleep_end_key: {
-                            "$convert": {
-                                "input": f"${sleep_end_key}",
-                                "to": "date",
-                            }
-                        },
-                    }
-                },
-                date_filter,
-            ]
-        )
-        comp_temp_df = pd.DataFrame()
-        for entry in filtered_coll:
-            temp_df = pd.DataFrame(
-                entry[pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY], index=[0]
-            )
-            comp_temp_df = pd.concat((comp_temp_df, temp_df), ignore_index=True)
-        comp_temp_df = comp_temp_df.sort_values(
-            by=pylifesnaps.constants._DB_FITBIT_COLLECTION_COMP_TEMP_SLEEP_START_KEY
-        ).reset_index(drop=True)
-        return comp_temp_df
 
     def load_daily_spo2(
         self,
@@ -513,7 +539,36 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        """Load daily SpO2 values.
+
+        This function loads SpO2 values from the DB. The returned
+        :class:`pd.DataFrame` contains the following colums:
+
+        - timestamp: date
+        - average_value: average measured SpO2
+        - lower_bound: lower bound of measured SpO2
+        - upper_bound: upper bound of measured SpO2
+
+        Parameters
+        ----------
+        user_id : ObjectId or str
+            Unique identifier for the user.
+        start_date : datetime.datetime or datetime.date or str or None, optional
+            Start date for data retrieval, by default None
+        end_date : datetime.datetime or datetime.date or str or None, optional
+            End date for data retrieval, by default None
+
+        Returns
+        -------
+        pd.DataFrame
+            Daily SpO2 values.
+        """
+        return self.load_metric(
+            metric=pylifesnaps.constants._METRIC_SPO2,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
     def load_device_temperature(
         self,
@@ -521,7 +576,12 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        return self.load_metric(
+            metric=pylifesnaps.constants._METRIC_DEVICE_TEMP,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
     def load_hrv_details(
         self,
@@ -537,7 +597,12 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        return self.load_metric(
+            metric=pylifesnaps.constants._METRICE_DAILY_HRV_SUMMARY,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
     def load_hrv_histogram(
         self,
@@ -761,9 +826,9 @@ class LifeSnapsLoader:
     def get_sleep_statistics():
         pass
 
-    def _get_filter_start_and_end_date_time(
+    def _get_start_and_end_date_time_filter_dict(
         self, start_date_key, end_date_key=None, start_date=None, end_date=None
-    ):
+    ) -> dict:
         if end_date_key is None:
             end_date_key = start_date_key
         if (not (start_date is None)) and (not (end_date is None)):
@@ -785,3 +850,36 @@ class LifeSnapsLoader:
             date_filter = {"$match": {}}
 
         return date_filter
+
+    def _get_date_conversion_dict(self, start_date_key, end_date_key=None) -> dict:
+        if start_date_key is None:
+            date_conversion_dict = {}
+        elif (not start_date_key is None) and (not end_date_key is None):
+            date_conversion_dict = {
+                "$addFields": {
+                    start_date_key: {
+                        "$convert": {
+                            "input": f"${start_date_key}",
+                            "to": "date",
+                        }
+                    },
+                    end_date_key: {
+                        "$convert": {
+                            "input": f"${end_date_key}",
+                            "to": "date",
+                        }
+                    },
+                }
+            }
+        elif (not start_date_key is None) and (end_date_key is None):
+            date_conversion_dict = {
+                "$addFields": {
+                    start_date_key: {
+                        "$convert": {
+                            "input": f"${start_date_key}",
+                            "to": "date",
+                        }
+                    },
+                }
+            }
+        return date_conversion_dict
