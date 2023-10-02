@@ -24,9 +24,24 @@ _METRIC_DICT = {
         "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DEVICE_TEMP_RECORDED_TIME_KEY,
         "end_date_key": None,
     },
-    pylifesnaps.constants._METRICE_DAILY_HRV_SUMMARY: {
+    pylifesnaps.constants._METRIC_DAILY_HRV_SUMMARY: {
         "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_DAILY_HRV_SUMMARY_VALUE,
         "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DAILY_HRV_SUMMARY_TIMESTAMP_KEY,
+        "end_date_key": None,
+    },
+    pylifesnaps.constants._METRIC_HRV_DETAILS: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_HRV_DETAILS_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_HRV_DETAILS_TIMESTAMP_KEY,
+        "end_date_key": None,
+    },
+    pylifesnaps.constants._METRIC_PROFILE: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_PROFILE_VALUE,
+        "start_date_key": None,
+        "end_date_key": None,
+    },
+    pylifesnaps.constants._METRIC_RESPIRATORY_RATE_SUMMARY: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_RESPIRATORY_RATE_SUMMARY_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_RESP_RATE_SUMMARY_TIMESTAMP_COL,
         "end_date_key": None,
     },
 }
@@ -442,11 +457,14 @@ class LifeSnapsLoader:
 
         metric_start_key = _METRIC_DICT[metric]["start_date_key"]
         metric_end_key = _METRIC_DICT[metric]["end_date_key"]
-        metric_start_date_key_db = (
-            pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
-            + "."
-            + metric_start_key
-        )
+        if metric_start_key is None:
+            metric_start_date_key_db = None
+        else:
+            metric_start_date_key_db = (
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
+                + "."
+                + metric_start_key
+            )
         if metric_end_key is None:
             metric_end_date_key_db = None
         else:
@@ -487,7 +505,7 @@ class LifeSnapsLoader:
                 entry[pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY], index=[0]
             )
             metric_df = pd.concat((metric_df, temp_df), ignore_index=True)
-        if len(metric_df) > 0:
+        if len(metric_df) > 0 and (metric_start_key is not None):
             metric_df = metric_df.sort_values(by=metric_start_key).reset_index(
                 drop=True
             )
@@ -589,7 +607,24 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        hrv_details = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_HRV_DETAILS,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        if len(hrv_details) > 0:
+            hrv_details = hrv_details.rename(
+                columns={
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_HRV_DETAILS_TIMESTAMP_KEY: pylifesnaps.constants._ISODATE_COL,
+                }
+            )
+            hrv_details[pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL] = hrv_details[
+                pylifesnaps.constants._ISODATE_COL
+            ].apply(lambda x: int(x.timestamp() * 1000))
+            hrv_details[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
+
+        return hrv_details
 
     def load_daily_hrv_summary(
         self,
@@ -598,7 +633,7 @@ class LifeSnapsLoader:
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
         return self.load_metric(
-            metric=pylifesnaps.constants._METRICE_DAILY_HRV_SUMMARY,
+            metric=pylifesnaps.constants._METRIC_DAILY_HRV_SUMMARY,
             user_id=user_id,
             start_date=start_date,
             end_date=end_date,
@@ -618,7 +653,12 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        return self.load_metric(
+            metric=pylifesnaps.constants._METRIC_PROFILE,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
     def load_respiratory_rate_summary(
         self,
@@ -626,7 +666,25 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        resp_rate_summary = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_RESPIRATORY_RATE_SUMMARY,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        if len(resp_rate_summary) > 0:
+            resp_rate_summary = resp_rate_summary.rename(
+                columns={
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_RESP_RATE_SUMMARY_TIMESTAMP_COL: pylifesnaps.constants._ISODATE_COL,
+                }
+            )
+            resp_rate_summary[
+                pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL
+            ] = resp_rate_summary[pylifesnaps.constants._ISODATE_COL].apply(
+                lambda x: int(x.timestamp() * 1000)
+            )
+            resp_rate_summary[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
+        return resp_rate_summary
 
     def load_stress_score(
         self,
@@ -853,7 +911,7 @@ class LifeSnapsLoader:
 
     def _get_date_conversion_dict(self, start_date_key, end_date_key=None) -> dict:
         if start_date_key is None:
-            date_conversion_dict = {}
+            date_conversion_dict = {"$addFields": {}}
         elif (not start_date_key is None) and (not end_date_key is None):
             date_conversion_dict = {
                 "$addFields": {

@@ -1,7 +1,15 @@
 _METRIC_SPO2 = "daily-spo2"
 _METRIC_COMP_TEMP = "computed-temprature"
 _METRIC_DEVICE_TEMP = "device-temperature"
-_METRICE_DAILY_HRV_SUMMARY = "daily-hrv-summary"
+_METRIC_DAILY_HRV_SUMMARY = "daily-hrv-summary"
+_METRIC_HRV_DETAILS = "hrv-details"
+_METRIC_PROFILE = "profile"
+_METRIC_RESPIRATORY_RATE_SUMMARY = "respiratory-rate-summary"
+
+
+_UNIXTIMESTAMP_IN_MS_COL = "unixTimestampInMs"
+_ISODATE_COL = "isoDate"
+_TIMEZONEOFFSET_IN_MS_COL = "timezoneOffsetInMs"
 
 ##################################
 #           Database             #
@@ -33,10 +41,14 @@ _DB_FITBIT_COLLECTION_DATA_TYPE_DAILY_HRV_SUMMARY_VALUE = (
 _DB_FITBIT_COLLECTION_DATA_TYPE_HRV_DETAILS_VALUE = "Heart Rate Variability Details"
 _DB_FITBIT_COLLECTION_DATA_TYPE_HRV_HISTOGRAM_VALUE = "Heart Rate Variability Histogram"
 _DB_FITBIT_COLLECTION_DATA_TYPE_PROFILE_VALUE = "Profile"
+_DB_FITBIT_COLLECTION_DATA_TYPE_RESPIRATORY_RATE_SUMMARY_VALUE = (
+    "Respiratory Rate Summary"
+)
+_DB_FITBIT_COLLECTION_DATA_TYPE_STRESS_SCORE_VALUE = "Stress Score"
+_DB_FITBIT_COLLECTION_DATA_TYPE_WRIST_TEMPERATURE_VALUE = "Wrist Temperature"
 
 """
-'Respiratory Rate Summary', 'Stress Score', 
-'Wrist Temperature', 'altitude', 'badge', 'calories', 'demographic_vo2_max', 'distance', 'estimated_oxygen_variation', 
+'altitude', 'badge', 'calories', 'demographic_vo2_max', 'distance', 'estimated_oxygen_variation', 
 'exercise', 'heart_rate', 'journal_entries', 'lightly_active_minutes', 'mindfulness_eda_data_sessions', 'mindfulness_goals', 
 'mindfulness_sessions', 'moderately_active_minutes', 'resting_heart_rate', 'sedentary_minutes', 'sleep', 'steps',
 'time_in_heart_rate_zones', 'very_active_minutes', 'water_logs']
@@ -113,3 +125,27 @@ _DB_FITBIT_COLLECTION_DAILY_HRV_SUMMARY_TIMESTAMP_KEY = "timestamp"
 _DB_FITBIT_COLLECTION_DAILY_HRV_SUMMARY_RMSSD_KEY = "rmssd"
 _DB_FITBIT_COLLECTION_DAILY_HRV_SUMMARY_NREMHR_KEY = "nremhr"
 _DB_FITBIT_COLLECTION_DAILY_HRV_SUMMARY_ENTROPY_KEY = "entropy"
+
+# --------------------------------#
+#           HRV Details           #
+# --------------------------------#
+_DB_FITBIT_COLLECTION_HRV_DETAILS_TIMESTAMP_KEY = "timestamp"
+_DB_FITBIT_COLLECTION_HRV_DETAILS_COVERAGE_KEY = "coverage"
+_DB_FITBIT_COLLECTION_HRV_DETAILS_LOW_FREQUENCY_KEY = "low_frequency"
+_DB_FITBIT_COLLECTION_HRV_DETAILS_HIGH_FREQUENCY_KEY = "high_frequency"
+_DB_FITBIT_COLLECTION_HRV_DETAILS_RMSSD_KEY = "rmssd"
+
+# --------------------------------#
+#             Profile             #
+# --------------------------------#
+_DB_FITBIT_COLLECTION_PROFILE_GENDER_COL = "gender"
+_DB_FITBIT_COLLECTION_PROFILE_BMI_COL = "bmi"
+_DB_FITBIT_COLLECTION_PROFILE_AGE_COL = "age"
+
+# --------------------------------#
+#     Respiratory Rate Summary    #
+# --------------------------------#
+_DB_FITBIT_COLLECTION_RESP_RATE_SUMMARY_FULL_SLEEP_BREATHING_RATE_COL = (
+    "full_sleep_breathing_rate"
+)
+_DB_FITBIT_COLLECTION_RESP_RATE_SUMMARY_TIMESTAMP_COL = "timestamp"
