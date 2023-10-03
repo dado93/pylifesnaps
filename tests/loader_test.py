@@ -108,3 +108,62 @@ def test_load_respiratory_rate_summary(
         pylifesnaps.constants._DB_FITBIT_COLLECTION_RESP_RATE_SUMMARY_FULL_SLEEP_BREATHING_RATE_COL
         in resp_rate_summary.columns
     )
+
+
+def test_load_stress_score(
+    lifesnaps_loader: pylifesnaps.loader.LifeSnapsLoader,
+):
+    user_id = "621e2e8e67b776a24055b564"
+    start_date = datetime.datetime(2021, 5, 24)
+    end_date = datetime.datetime(2021, 5, 26)
+    stress_score = lifesnaps_loader.load_stress_score(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+    assert isinstance(stress_score, pd.DataFrame)
+    assert pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL in stress_score.columns
+    assert pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL in stress_score.columns
+    assert pylifesnaps.constants._ISODATE_COL in stress_score.columns
+
+
+def test_load_wrist_temperature(
+    lifesnaps_loader: pylifesnaps.loader.LifeSnapsLoader,
+):
+    user_id = "621e2e8e67b776a24055b564"
+    start_date = datetime.datetime(2021, 5, 24)
+    end_date = datetime.datetime(2021, 5, 26)
+    wrist_temperature = lifesnaps_loader.load_wrist_temperature(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+    assert isinstance(wrist_temperature, pd.DataFrame)
+    assert pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL in wrist_temperature.columns
+    assert pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL in wrist_temperature.columns
+    assert pylifesnaps.constants._ISODATE_COL in wrist_temperature.columns
+    assert (
+        pylifesnaps.constants._DB_FITBIT_COLLECTION_WRIST_TEMP_TEMP_COL
+        in wrist_temperature.columns
+    )
+
+
+@pytest.mark.parametrize(
+    "start_date",
+    [datetime.datetime(2021, 5, 24), datetime.date(2021, 5, 24), None, "2021/05/24"],
+)
+@pytest.mark.parametrize(
+    "end_date",
+    [datetime.datetime(2021, 5, 26), datetime.date(2021, 5, 26), None, "2021/05/26"],
+)
+def test_load_altitude(
+    lifesnaps_loader: pylifesnaps.loader.LifeSnapsLoader, start_date, end_date
+):
+    user_id = "621e2e8e67b776a24055b564"
+    altitude = lifesnaps_loader.load_altitude(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+    assert isinstance(altitude, pd.DataFrame)
+    assert pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL in altitude.columns
+    assert pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL in altitude.columns
+    assert pylifesnaps.constants._ISODATE_COL in altitude.columns
+    assert (
+        pylifesnaps.constants._DB_FITBIT_COLLECTION_ALTITUDE_ALTITUDE_COL
+        in altitude.columns
+    )

@@ -1,11 +1,13 @@
 _METRIC_SPO2 = "daily-spo2"
-_METRIC_COMP_TEMP = "computed-temprature"
-_METRIC_DEVICE_TEMP = "device-temperature"
+_METRIC_COMP_TEMP = "temprature-computed"
+_METRIC_DEVICE_TEMP = "temperature-device"
 _METRIC_DAILY_HRV_SUMMARY = "daily-hrv-summary"
 _METRIC_HRV_DETAILS = "hrv-details"
 _METRIC_PROFILE = "profile"
 _METRIC_RESPIRATORY_RATE_SUMMARY = "respiratory-rate-summary"
-
+_METRIC_STRESS = "stress"
+_METRIC_WRIST_TEMPERATURE = "temperature-wrist"
+_METRIC_ALTITUDE = "altitude"
 
 _UNIXTIMESTAMP_IN_MS_COL = "unixTimestampInMs"
 _ISODATE_COL = "isoDate"
@@ -35,9 +37,6 @@ _DB_FITBIT_COLLECTION_DATA_TYPE_DAILY_HRV_SUMMARY_VALUE = (
 _DB_FITBIT_COLLECTION_DATA_TYPE_DAILY_SPO2_VALUE = "Daily SpO2"
 _DB_FITBIT_COLLECTION_DATA_TYPE_DEVICE_TEMP_VALUE = "Device Temperature"
 _DB_FITBIT_COLLECTION_DATA_TYPE_AFIB_ECG_READINGS_VALUE = "Afib ECG Readings"
-_DB_FITBIT_COLLECTION_DATA_TYPE_DAILY_HRV_SUMMARY_VALUE = (
-    "Daily Heart Rate Variability Summary"
-)
 _DB_FITBIT_COLLECTION_DATA_TYPE_HRV_DETAILS_VALUE = "Heart Rate Variability Details"
 _DB_FITBIT_COLLECTION_DATA_TYPE_HRV_HISTOGRAM_VALUE = "Heart Rate Variability Histogram"
 _DB_FITBIT_COLLECTION_DATA_TYPE_PROFILE_VALUE = "Profile"
@@ -46,9 +45,13 @@ _DB_FITBIT_COLLECTION_DATA_TYPE_RESPIRATORY_RATE_SUMMARY_VALUE = (
 )
 _DB_FITBIT_COLLECTION_DATA_TYPE_STRESS_SCORE_VALUE = "Stress Score"
 _DB_FITBIT_COLLECTION_DATA_TYPE_WRIST_TEMPERATURE_VALUE = "Wrist Temperature"
+_DB_FITBIT_COLLECTION_DATA_TYPE_ALTITUDE_VALUE = "altitude"
+_DB_FITBIT_COLLECTION_DATA_TYPE_BADGE_VALUE = "badge"
+_DB_FITBIT_COLLECTION_DATA_TYPE_CALORIES_VALUE = "calories"
+_DB_FITBIT_COLLECTION_DATA_TYPE_DEMOGRAPHIC_VO2_MAX_VALUE = "demographic_vo2_max"
 
 """
-'altitude', 'badge', 'calories', 'demographic_vo2_max', 'distance', 'estimated_oxygen_variation', 
+'distance', 'estimated_oxygen_variation', 
 'exercise', 'heart_rate', 'journal_entries', 'lightly_active_minutes', 'mindfulness_eda_data_sessions', 'mindfulness_goals', 
 'mindfulness_sessions', 'moderately_active_minutes', 'resting_heart_rate', 'sedentary_minutes', 'sleep', 'steps',
 'time_in_heart_rate_zones', 'very_active_minutes', 'water_logs']
@@ -127,7 +130,7 @@ _DB_FITBIT_COLLECTION_DAILY_HRV_SUMMARY_NREMHR_KEY = "nremhr"
 _DB_FITBIT_COLLECTION_DAILY_HRV_SUMMARY_ENTROPY_KEY = "entropy"
 
 # --------------------------------#
-#           HRV Details           #
+#    HRV Details Documents        #
 # --------------------------------#
 _DB_FITBIT_COLLECTION_HRV_DETAILS_TIMESTAMP_KEY = "timestamp"
 _DB_FITBIT_COLLECTION_HRV_DETAILS_COVERAGE_KEY = "coverage"
@@ -136,16 +139,33 @@ _DB_FITBIT_COLLECTION_HRV_DETAILS_HIGH_FREQUENCY_KEY = "high_frequency"
 _DB_FITBIT_COLLECTION_HRV_DETAILS_RMSSD_KEY = "rmssd"
 
 # --------------------------------#
-#             Profile             #
+#       Profile Documents         #
 # --------------------------------#
 _DB_FITBIT_COLLECTION_PROFILE_GENDER_COL = "gender"
 _DB_FITBIT_COLLECTION_PROFILE_BMI_COL = "bmi"
 _DB_FITBIT_COLLECTION_PROFILE_AGE_COL = "age"
 
-# --------------------------------#
-#     Respiratory Rate Summary    #
-# --------------------------------#
+# ------------------------------------#
+#  Respiratory Rate Summary Documents #
+# ------------------------------------#
 _DB_FITBIT_COLLECTION_RESP_RATE_SUMMARY_FULL_SLEEP_BREATHING_RATE_COL = (
     "full_sleep_breathing_rate"
 )
 _DB_FITBIT_COLLECTION_RESP_RATE_SUMMARY_TIMESTAMP_COL = "timestamp"
+
+# --------------------------------#
+#     Stress Score Documents      #
+# --------------------------------#
+_DB_FITBIT_COLLECTION_STRESS_SCORE_DATE_COL = "DATE"
+
+# --------------------------------#
+#     Wrist Temperature Docs      #
+# --------------------------------#
+_DB_FITBIT_COLLECTION_WRIST_TEMP_RECORDED_TIME_COL = "recorded_time"
+_DB_FITBIT_COLLECTION_WRIST_TEMP_TEMP_COL = "temperature"
+
+# --------------------------------#
+#     Wrist Temperature Docs      #
+# --------------------------------#
+_DB_FITBIT_COLLECTION_ALTITUDE_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_ALTITUDE_ALTITUDE_COL = "value"

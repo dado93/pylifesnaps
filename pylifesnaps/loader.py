@@ -44,6 +44,21 @@ _METRIC_DICT = {
         "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_RESP_RATE_SUMMARY_TIMESTAMP_COL,
         "end_date_key": None,
     },
+    pylifesnaps.constants._METRIC_STRESS: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_STRESS_SCORE_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_STRESS_SCORE_DATE_COL,
+        "end_date_key": None,
+    },
+    pylifesnaps.constants._METRIC_WRIST_TEMPERATURE: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_WRIST_TEMPERATURE_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_WRIST_TEMP_RECORDED_TIME_COL,
+        "end_date_key": None,
+    },
+    pylifesnaps.constants._METRIC_ALTITUDE: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_ALTITUDE_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_ALTITUDE_DATETIME_COL,
+        "end_date_key": None,
+    },
 }
 
 
@@ -500,11 +515,16 @@ class LifeSnapsLoader:
             ]
         )
         metric_df = pd.DataFrame()
-        for entry in filtered_coll:
-            temp_df = pd.DataFrame(
-                entry[pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY], index=[0]
-            )
-            metric_df = pd.concat((metric_df, temp_df), ignore_index=True)
+        list_of_metric_dict = [
+            entry[pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY]
+            for entry in filtered_coll
+        ]
+        metric_df = pd.DataFrame(list_of_metric_dict)
+        # for entry in filtered_coll:
+        #    temp_df = pd.DataFrame(
+        #        , index=[0]
+        #    )
+        #    metric_df = pd.concat((metric_df, temp_df), ignore_index=True)
         if len(metric_df) > 0 and (metric_start_key is not None):
             metric_df = metric_df.sort_values(by=metric_start_key).reset_index(
                 drop=True
@@ -692,7 +712,26 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        stress_score = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_STRESS,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        if len(stress_score) > 0:
+            stress_score = stress_score.rename(
+                columns={
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_STRESS_SCORE_DATE_COL: pylifesnaps.constants._ISODATE_COL
+                }
+            )
+            stress_score = stress_score.sort_values(
+                by=pylifesnaps.constants._ISODATE_COL
+            ).reset_index(drop=True)
+            stress_score[pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL] = stress_score[
+                pylifesnaps.constants._ISODATE_COL
+            ].apply(lambda x: int(x.timestamp() * 1000))
+            stress_score[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
+        return stress_score
 
     def load_wrist_temperature(
         self,
@@ -700,7 +739,28 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        wrist_temperature = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_WRIST_TEMPERATURE,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        if len(wrist_temperature) > 0:
+            wrist_temperature = wrist_temperature.rename(
+                columns={
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_WRIST_TEMP_RECORDED_TIME_COL: pylifesnaps.constants._ISODATE_COL
+                }
+            )
+            wrist_temperature = wrist_temperature.sort_values(
+                by=pylifesnaps.constants._ISODATE_COL
+            ).reset_index(drop=True)
+            wrist_temperature[
+                pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL
+            ] = wrist_temperature[pylifesnaps.constants._ISODATE_COL].apply(
+                lambda x: int(x.timestamp() * 1000)
+            )
+            wrist_temperature[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
+        return wrist_temperature
 
     def load_altitude(
         self,
@@ -708,7 +768,23 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        altitude = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_ALTITUDE,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        if len(altitude) > 0:
+            altitude = altitude.rename(
+                columns={
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_ALTITUDE_DATETIME_COL: pylifesnaps.constants._ISODATE_COL
+                }
+            )
+            altitude[pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL] = altitude[
+                pylifesnaps.constants._ISODATE_COL
+            ].apply(lambda x: int(x.timestamp() * 1000))
+            altitude[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
+        return altitude
 
     def load_badges(
         self,
