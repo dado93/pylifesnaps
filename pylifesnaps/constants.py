@@ -1,3 +1,6 @@
+##################################
+#           Metric Names         #
+##################################
 _METRIC_SPO2 = "daily-spo2"
 _METRIC_COMP_TEMP = "temprature-computed"
 _METRIC_DEVICE_TEMP = "temperature-device"
@@ -8,7 +11,14 @@ _METRIC_RESPIRATORY_RATE_SUMMARY = "respiratory-rate-summary"
 _METRIC_STRESS = "stress"
 _METRIC_WRIST_TEMPERATURE = "temperature-wrist"
 _METRIC_ALTITUDE = "altitude"
+_METRIC_BADGE = "badge"
+_METRIC_CALORIES = "calories"
 
+_METRIC_DISTANCE = "distance"
+
+##################################
+#      General Columns           #
+##################################
 _UNIXTIMESTAMP_IN_MS_COL = "unixTimestampInMs"
 _ISODATE_COL = "isoDate"
 _TIMEZONEOFFSET_IN_MS_COL = "timezoneOffsetInMs"
@@ -49,9 +59,10 @@ _DB_FITBIT_COLLECTION_DATA_TYPE_ALTITUDE_VALUE = "altitude"
 _DB_FITBIT_COLLECTION_DATA_TYPE_BADGE_VALUE = "badge"
 _DB_FITBIT_COLLECTION_DATA_TYPE_CALORIES_VALUE = "calories"
 _DB_FITBIT_COLLECTION_DATA_TYPE_DEMOGRAPHIC_VO2_MAX_VALUE = "demographic_vo2_max"
+_DB_FITBIT_COLLECTION_DATA_TYPE_DISTANCE_VALUE = "distance"
 
 """
-'distance', 'estimated_oxygen_variation', 
+'estimated_oxygen_variation', 
 'exercise', 'heart_rate', 'journal_entries', 'lightly_active_minutes', 'mindfulness_eda_data_sessions', 'mindfulness_goals', 
 'mindfulness_sessions', 'moderately_active_minutes', 'resting_heart_rate', 'sedentary_minutes', 'sleep', 'steps',
 'time_in_heart_rate_zones', 'very_active_minutes', 'water_logs']
@@ -169,3 +180,29 @@ _DB_FITBIT_COLLECTION_WRIST_TEMP_TEMP_COL = "temperature"
 # --------------------------------#
 _DB_FITBIT_COLLECTION_ALTITUDE_DATETIME_COL = "dateTime"
 _DB_FITBIT_COLLECTION_ALTITUDE_ALTITUDE_COL = "value"
+
+# --------------------------------#
+#     Wrist Temperature Docs      #
+# --------------------------------#
+_DB_FITBIT_COLLECTION_BADGE_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_BADGE_TYPE_COL = "badgeType"
+_DB_FITBIT_COLLECTION_BADGE_VALUE_COL = "value"
+
+
+# --------------------------------#
+#          Calories Docs          #
+# --------------------------------#
+_DB_FITBIT_COLLECTION_CALORIES_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_CALORIES_VALUE_COL = "value"
+
+# --------------------------------#
+#          Distance Docs          #
+# --------------------------------#
+_DB_FITBIT_COLLECTION_DISTANCE_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_DISTANCE_VALUE_COL = "value"
+
+# ----------------------------------#
+#  Estimated Oxygen Variation Docs  #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_DISTANCE_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_DISTANCE_VALUE_COL = "value"

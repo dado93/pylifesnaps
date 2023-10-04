@@ -167,3 +167,75 @@ def test_load_altitude(
         pylifesnaps.constants._DB_FITBIT_COLLECTION_ALTITUDE_ALTITUDE_COL
         in altitude.columns
     )
+
+
+@pytest.mark.parametrize(
+    "start_date",
+    [datetime.datetime(2021, 5, 24), datetime.date(2021, 5, 24), None, "2021/05/24"],
+)
+@pytest.mark.parametrize(
+    "end_date",
+    [datetime.datetime(2021, 11, 30), datetime.date(2021, 11, 30), None, "2021/11/30"],
+)
+def test_load_badge(
+    lifesnaps_loader: pylifesnaps.loader.LifeSnapsLoader, start_date, end_date
+):
+    user_id = "621e2e8e67b776a24055b564"
+    badge = lifesnaps_loader.load_badge(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+    assert isinstance(badge, pd.DataFrame)
+    assert pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL in badge.columns
+    assert pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL in badge.columns
+    assert pylifesnaps.constants._ISODATE_COL in badge.columns
+    assert pylifesnaps.constants._DB_FITBIT_COLLECTION_BADGE_TYPE_COL in badge.columns
+
+
+@pytest.mark.parametrize(
+    "start_date",
+    [datetime.datetime(2021, 5, 24), datetime.date(2021, 5, 24), None, "2021/05/24"],
+)
+@pytest.mark.parametrize(
+    "end_date",
+    [datetime.datetime(2021, 5, 30), datetime.date(2021, 5, 30), None, "2021/05/30"],
+)
+def test_load_calories(
+    lifesnaps_loader: pylifesnaps.loader.LifeSnapsLoader, start_date, end_date
+):
+    user_id = "621e2e8e67b776a24055b564"
+    calories = lifesnaps_loader.load_calories(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+    assert isinstance(calories, pd.DataFrame)
+    assert pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL in calories.columns
+    assert pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL in calories.columns
+    assert pylifesnaps.constants._ISODATE_COL in calories.columns
+    assert (
+        pylifesnaps.constants._DB_FITBIT_COLLECTION_CALORIES_VALUE_COL
+        in calories.columns
+    )
+
+
+@pytest.mark.parametrize(
+    "start_date",
+    [datetime.datetime(2021, 5, 24), datetime.date(2021, 5, 24), None, "2021/05/24"],
+)
+@pytest.mark.parametrize(
+    "end_date",
+    [datetime.datetime(2021, 5, 30), datetime.date(2021, 5, 30), None, "2021/05/30"],
+)
+def test_load_distance(
+    lifesnaps_loader: pylifesnaps.loader.LifeSnapsLoader, start_date, end_date
+):
+    user_id = "621e2e8e67b776a24055b564"
+    distance = lifesnaps_loader.load_distance(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+    assert isinstance(distance, pd.DataFrame)
+    assert pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL in distance.columns
+    assert pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL in distance.columns
+    assert pylifesnaps.constants._ISODATE_COL in distance.columns
+    assert (
+        pylifesnaps.constants._DB_FITBIT_COLLECTION_CALORIES_VALUE_COL
+        in distance.columns
+    )

@@ -59,6 +59,21 @@ _METRIC_DICT = {
         "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_ALTITUDE_DATETIME_COL,
         "end_date_key": None,
     },
+    pylifesnaps.constants._METRIC_BADGE: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_BADGE_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_BADGE_DATETIME_COL,
+        "end_date_key": None,
+    },
+    pylifesnaps.constants._METRIC_CALORIES: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_CALORIES_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_CALORIES_DATETIME_COL,
+        "end_date_key": None,
+    },
+    pylifesnaps.constants._METRIC_DISTANCE: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_DISTANCE_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DISTANCE_DATETIME_COL,
+        "end_date_key": None,
+    },
 }
 
 
@@ -127,6 +142,10 @@ class LifeSnapsLoader:
         end_date = pylifesnaps.utils.convert_to_datetime(end_date)
         date_of_sleep_key = f"{pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY}"
         date_of_sleep_key += f".{pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY}"
+        start_sleep_key = f"{pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY}"
+        start_sleep_key += (
+            f".{pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY}"
+        )
         date_filter = self._get_start_and_end_date_time_filter_dict(
             start_date_key=date_of_sleep_key,
             start_date=start_date,
@@ -148,7 +167,13 @@ class LifeSnapsLoader:
                                 "input": f"${date_of_sleep_key}",
                                 "to": "date",
                             }
-                        }
+                        },
+                        start_sleep_key: {
+                            "$convert": {
+                                "input": f"${start_sleep_key}",
+                                "to": "date",
+                            }
+                        },
                     }
                 },
                 date_filter,
@@ -194,6 +219,17 @@ class LifeSnapsLoader:
 
             sleep_summary_df = pd.concat((sleep_summary_df, temp_df), ignore_index=True)
         if len(sleep_summary_df) > 0:
+            sleep_summary_df[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
+            sleep_summary_df = sleep_summary_df.rename(
+                columns={
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY: pylifesnaps.constants._ISODATE_COL
+                }
+            )
+            sleep_summary_df[
+                pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL
+            ] = sleep_summary_df[pylifesnaps.constants._ISODATE_COL].apply(
+                lambda x: int(x.timestamp() * 1000)
+            )
             sleep_summary_df = sleep_summary_df.sort_values(
                 by=pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY
             ).reset_index(drop=True)
@@ -201,7 +237,6 @@ class LifeSnapsLoader:
                 [
                     pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LOG_ID_KEY,
                     pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DATE_OF_SLEEP_KEY,
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_START_TIME_KEY,
                     pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_END_TIME_KEY,
                     pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_DURATION_KEY,
                 ]
@@ -242,7 +277,7 @@ class LifeSnapsLoader:
     ) -> list:
         pass
 
-    def load_sleep_stages(
+    def load_sleep_stage(
         self,
         user_id: Union[ObjectId, str],
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -455,6 +490,28 @@ class LifeSnapsLoader:
             sleep_stage_df = pd.concat(
                 (sleep_stage_df, sleep_data_df), ignore_index=True
             )
+        if len(sleep_stage_df) > 0:
+            sleep_stage_df[pylifesnaps.constants._ISODATE_COL] = pd.to_datetime(
+                sleep_stage_df[
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_DATETIME_KEY
+                ],
+                utc=True,
+            ).dt.tz_localize(None)
+            sleep_stage_df = sleep_stage_df.drop(
+                [
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_DATETIME_KEY
+                ],
+                axis=1,
+            )
+            sleep_stage_df[
+                pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL
+            ] = sleep_stage_df[pylifesnaps.constants._ISODATE_COL].apply(
+                lambda x: int(x.timestamp() * 1000)
+            )
+            sleep_stage_df = sleep_stage_df.sort_values(
+                by=pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL
+            ).reset_index(drop=True)
+            sleep_stage_df[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
         return sleep_stage_df
 
     def load_metric(
@@ -520,15 +577,11 @@ class LifeSnapsLoader:
             for entry in filtered_coll
         ]
         metric_df = pd.DataFrame(list_of_metric_dict)
-        # for entry in filtered_coll:
-        #    temp_df = pd.DataFrame(
-        #        , index=[0]
-        #    )
-        #    metric_df = pd.concat((metric_df, temp_df), ignore_index=True)
         if len(metric_df) > 0 and (metric_start_key is not None):
             metric_df = metric_df.sort_values(by=metric_start_key).reset_index(
                 drop=True
             )
+        metric_df = self._setup_datetime_columns(df=metric_df, metric=metric)
         return metric_df
 
     def load_computed_temperature(
@@ -633,17 +686,6 @@ class LifeSnapsLoader:
             start_date=start_date,
             end_date=end_date,
         )
-        if len(hrv_details) > 0:
-            hrv_details = hrv_details.rename(
-                columns={
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_HRV_DETAILS_TIMESTAMP_KEY: pylifesnaps.constants._ISODATE_COL,
-                }
-            )
-            hrv_details[pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL] = hrv_details[
-                pylifesnaps.constants._ISODATE_COL
-            ].apply(lambda x: int(x.timestamp() * 1000))
-            hrv_details[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
-
         return hrv_details
 
     def load_daily_hrv_summary(
@@ -692,18 +734,6 @@ class LifeSnapsLoader:
             start_date=start_date,
             end_date=end_date,
         )
-        if len(resp_rate_summary) > 0:
-            resp_rate_summary = resp_rate_summary.rename(
-                columns={
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_RESP_RATE_SUMMARY_TIMESTAMP_COL: pylifesnaps.constants._ISODATE_COL,
-                }
-            )
-            resp_rate_summary[
-                pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL
-            ] = resp_rate_summary[pylifesnaps.constants._ISODATE_COL].apply(
-                lambda x: int(x.timestamp() * 1000)
-            )
-            resp_rate_summary[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
         return resp_rate_summary
 
     def load_stress_score(
@@ -718,19 +748,6 @@ class LifeSnapsLoader:
             start_date=start_date,
             end_date=end_date,
         )
-        if len(stress_score) > 0:
-            stress_score = stress_score.rename(
-                columns={
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_STRESS_SCORE_DATE_COL: pylifesnaps.constants._ISODATE_COL
-                }
-            )
-            stress_score = stress_score.sort_values(
-                by=pylifesnaps.constants._ISODATE_COL
-            ).reset_index(drop=True)
-            stress_score[pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL] = stress_score[
-                pylifesnaps.constants._ISODATE_COL
-            ].apply(lambda x: int(x.timestamp() * 1000))
-            stress_score[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
         return stress_score
 
     def load_wrist_temperature(
@@ -745,21 +762,6 @@ class LifeSnapsLoader:
             start_date=start_date,
             end_date=end_date,
         )
-        if len(wrist_temperature) > 0:
-            wrist_temperature = wrist_temperature.rename(
-                columns={
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_WRIST_TEMP_RECORDED_TIME_COL: pylifesnaps.constants._ISODATE_COL
-                }
-            )
-            wrist_temperature = wrist_temperature.sort_values(
-                by=pylifesnaps.constants._ISODATE_COL
-            ).reset_index(drop=True)
-            wrist_temperature[
-                pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL
-            ] = wrist_temperature[pylifesnaps.constants._ISODATE_COL].apply(
-                lambda x: int(x.timestamp() * 1000)
-            )
-            wrist_temperature[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
         return wrist_temperature
 
     def load_altitude(
@@ -774,25 +776,21 @@ class LifeSnapsLoader:
             start_date=start_date,
             end_date=end_date,
         )
-        if len(altitude) > 0:
-            altitude = altitude.rename(
-                columns={
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_ALTITUDE_DATETIME_COL: pylifesnaps.constants._ISODATE_COL
-                }
-            )
-            altitude[pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL] = altitude[
-                pylifesnaps.constants._ISODATE_COL
-            ].apply(lambda x: int(x.timestamp() * 1000))
-            altitude[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
         return altitude
 
-    def load_badges(
+    def load_badge(
         self,
         user_id: Union[ObjectId, str],
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        badge = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_BADGE,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return badge
 
     def load_calories(
         self,
@@ -800,7 +798,13 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        calories = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_CALORIES,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return calories
 
     def load_demographic_vo2_max(
         self,
@@ -816,7 +820,13 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        distance = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_DISTANCE,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return distance
 
     def load_estimated_oxygen_variation(
         self,
@@ -1017,3 +1027,18 @@ class LifeSnapsLoader:
                 }
             }
         return date_conversion_dict
+
+    def _setup_datetime_columns(self, df: pd.DataFrame, metric: str):
+        if len(df) > 0:
+            df = df.rename(
+                columns={
+                    _METRIC_DICT[metric][
+                        "start_date_key"
+                    ]: pylifesnaps.constants._ISODATE_COL
+                }
+            )
+            df[pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL] = df[
+                pylifesnaps.constants._ISODATE_COL
+            ].apply(lambda x: int(x.timestamp() * 1000))
+            df[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
+        return df
