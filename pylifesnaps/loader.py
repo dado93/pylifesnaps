@@ -196,7 +196,7 @@ class LifeSnapsLoader:
                 )
                 - set(["levels"])
             }
-            # Create a pd.DataFrame
+            # Create a pd.DataFrame with sleep summary data
             temp_df = pd.DataFrame(
                 filtered_dict,
                 index=[
@@ -205,17 +205,41 @@ class LifeSnapsLoader:
                     ]
                 ],
             )
-            # Get sleep stage duration from levels
-            stages_info = sleep_summary[
-                pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
-            ][pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
-                pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_SUMMARY_KEY
-            ]
-            for stage_name, stage_values in stages_info.items():
-                for stage_values_key, stage_values_value in stage_values.items():
-                    temp_df[
-                        f"{stage_name}{stage_values_key.title()}"
-                    ] = stage_values_value
+            # Get sleep stages
+            sleep_stages_df = self._merge_sleep_data_and_sleep_short_data(sleep_summary)
+            # Get duration for each sleep stage
+            sleep_stages_duration = sleep_stages_df.groupby(
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_LEVEL_KEY
+            )[
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_SECONDS_KEY
+            ].sum()
+            # Create dictionary with sleep_stage : duration column name
+            stage_value_col_dict = {
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_DEEP_VALUE: pylifesnaps.constants._SLEEP_DEEP_DURATION_IN_MS_COL,
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_LIGHT_VALUE: pylifesnaps.constants._SLEEP_LIGHT_DURATION_IN_MS_COL,
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_REM_VALUE: pylifesnaps.constants._SLEEP_REM_DURATION_IN_MS_COL,
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_WAKE_VALUE: pylifesnaps.constants._SLEEP_AWAKE_DURATION_IN_MS_COL,
+            }
+            # Save stage duration in sleep summary with ms unit
+            for sleep_stage in stage_value_col_dict.keys():
+                if sleep_stage in sleep_stages_duration.index:
+                    temp_df[stage_value_col_dict[sleep_stage]] = (
+                        sleep_stages_duration.loc[sleep_stage] * 1000
+                    )
+                else:
+                    temp_df[pylifesnaps.constants._SLEEP_DEEP_DURATION_IN_MS_COL] = 0
+
+            # Get sleep stage duration from sleep stages -> otherwise we have information in minutes
+            # stages_info = sleep_summary[
+            #    pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
+            # ][pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
+            #    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_SUMMARY_KEY
+            # ]
+            # for stage_name, stage_values in stages_info.items():
+            #    for stage_values_key, stage_values_value in stage_values.items():
+            #        temp_df[
+            #            f"{stage_name}{stage_values_key.title()}"
+            #        ] = stage_values_value
 
             sleep_summary_df = pd.concat((sleep_summary_df, temp_df), ignore_index=True)
         if len(sleep_summary_df) > 0:
@@ -248,10 +272,146 @@ class LifeSnapsLoader:
                 )
         return sleep_summary_df
 
-    def _merge_sleep_data_and_sleep_short_data(
-        self, sleep_data: pd.DataFrame, short_sleep_data: list
-    ):
-        pass
+    def _merge_sleep_data_and_sleep_short_data(self, sleep_entry: dict) -> pd.DataFrame:
+        # Get data
+        sleep_data_dict = sleep_entry[
+            pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
+        ][pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
+            pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_KEY
+        ]
+        # Create a pd.DataFrame with sleep data
+        sleep_data_df = pd.DataFrame(sleep_data_dict)
+        if not (
+            pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_SHORT_DATA_KEY
+            in sleep_entry[pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY][
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY
+            ].keys()
+        ):
+            return sleep_data_df
+        sleep_short_data_list = sleep_entry[
+            pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
+        ][pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
+            pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_SHORT_DATA_KEY
+        ]
+        # Just store column names
+        datetime_col = (
+            pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_DATETIME_KEY
+        )
+        seconds_col = (
+            pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_SECONDS_KEY
+        )
+        level_col = (
+            pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_LEVEL_KEY
+        )
+        # Create a pd.DataFrame with sleep data
+
+        # We need to inject sleep short data in data
+        # 1. Get start and end of sleep from sleep data
+        sleep_data_df[datetime_col] = pd.to_datetime(sleep_data_df[datetime_col])
+        sleep_start_dt = sleep_data_df.iloc[0][datetime_col]
+        sleep_end_dt = sleep_data_df.iloc[-1][datetime_col] + datetime.timedelta(
+            seconds=int(sleep_data_df.iloc[-1][seconds_col])
+        )
+
+        sleep_data_df = sleep_data_df.set_index(datetime_col)
+
+        # 2. Create new list with short data using 30 seconds windows
+        sleep_short_data_list_copy = []
+        for sleep_short_data_entry in sleep_short_data_list:
+            start_dt = datetime.datetime.strptime(
+                sleep_short_data_entry[datetime_col], "%Y-%m-%dT%H:%M:%S.%f"
+            )
+            if sleep_short_data_entry[seconds_col] > 30:
+                n_to_add = int(sleep_short_data_entry[seconds_col] / 30)
+                for i in range(n_to_add):
+                    sleep_short_data_list_copy.append(
+                        {
+                            datetime_col: start_dt + i * datetime.timedelta(seconds=30),
+                            level_col: pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_WAKE_VALUE,
+                            seconds_col: 30,
+                        }
+                    )
+            else:
+                sleep_short_data_list_copy.append(
+                    {
+                        datetime_col: start_dt,
+                        level_col: pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_WAKE_VALUE,
+                        seconds_col: sleep_short_data_entry[seconds_col],
+                    }
+                )
+        # 3. Create DataFrame with sleep short data and get start and end sleep data
+        sleep_short_data_df = pd.DataFrame(sleep_short_data_list_copy)
+        sleep_short_data_df[datetime_col] = pd.to_datetime(
+            sleep_short_data_df[datetime_col]
+        )
+        sleep_short_data_start_dt = sleep_short_data_df.iloc[0][datetime_col]
+        sleep_short_data_end_dt = sleep_short_data_df.iloc[-1][
+            datetime_col
+        ] + datetime.timedelta(seconds=int(sleep_short_data_df.iloc[-1][seconds_col]))
+        sleep_short_data_df = sleep_short_data_df.set_index(datetime_col)
+
+        # 4. Let's create a new dataframe that goes from min sleep time to max sleep time
+        min_sleep_dt = (
+            sleep_start_dt
+            if sleep_start_dt < sleep_short_data_start_dt
+            else sleep_short_data_start_dt
+        )
+        max_sleep_dt = (
+            sleep_end_dt
+            if sleep_end_dt > sleep_short_data_end_dt
+            else sleep_short_data_end_dt
+        )
+
+        new_sleep_data_df_index = pd.Index(
+            [
+                min_sleep_dt + i * datetime.timedelta(seconds=30)
+                for i in range(int((max_sleep_dt - min_sleep_dt).total_seconds() / 30))
+            ]
+        )
+        new_sleep_data_df = pd.DataFrame(index=new_sleep_data_df_index)
+        new_sleep_data_df.loc[new_sleep_data_df.index, level_col] = sleep_data_df[
+            level_col
+        ]
+        new_sleep_data_df[level_col] = new_sleep_data_df.ffill()
+        new_sleep_data_df[seconds_col] = 30
+
+        # 5. Inject short data into new dataframe
+        new_sleep_data_df.loc[
+            sleep_short_data_df.index, level_col
+        ] = sleep_short_data_df[level_col]
+
+        # 6. Create new column with levels and another one for their changes
+        new_sleep_data_df["levelMap"] = pd.factorize(new_sleep_data_df[level_col])[0]
+        new_sleep_data_df["levelMapDiff"] = new_sleep_data_df["levelMap"].diff()
+
+        # 7. Create new column with id for each sleep stage
+        new_sleep_data_df["levelGroup"] = (
+            new_sleep_data_df["levelMap"] != new_sleep_data_df["levelMap"].shift()
+        ).cumsum()
+        new_sleep_data_df = new_sleep_data_df.reset_index(names=datetime_col)
+        # 8. Get rows when change is detected
+        final_sleep_df = (
+            new_sleep_data_df[new_sleep_data_df["levelMapDiff"] != 0]
+            .copy()
+            .reset_index(drop=True)
+        )
+
+        # 9. Get total seconds with isoDate information
+        final_sleep_df[seconds_col] = (
+            (
+                new_sleep_data_df.groupby("levelGroup")[datetime_col].last()
+                + datetime.timedelta(seconds=30)
+                - new_sleep_data_df.groupby("levelGroup")[datetime_col].first()
+            )
+            .dt.total_seconds()
+            .reset_index(drop=True)
+        )
+        sleep_data_df = final_sleep_df.copy()
+
+        sleep_data_df = sleep_data_df.drop(
+            ["levelMap", "levelMapDiff", "levelGroup"], axis=1
+        )
+        return sleep_data_df
 
     def _get_raw_sleep_data(
         self,
@@ -262,14 +422,6 @@ class LifeSnapsLoader:
         pass
 
     def _get_raw_sleep_short_data(
-        self,
-        user_id: Union[ObjectId, str],
-        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
-        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    ) -> list:
-        pass
-
-    def _get_raw_short_sleep_data(
         self,
         user_id: Union[ObjectId, str],
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
@@ -327,165 +479,24 @@ class LifeSnapsLoader:
         # Convert to dataframe
         sleep_stage_df = pd.DataFrame()
         for sleep_entry in filtered_coll:
-            # Get data
-            sleep_data_dict = sleep_entry[
-                pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
-            ][pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
-                pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_KEY
-            ]
-            # Create a pd.DataFrame with sleep data
-            sleep_data_df = pd.DataFrame(sleep_data_dict)
-            # Add log id to pd.DataFrame
+            # Get shortData if they are there
+            if include_short_data:
+                sleep_data_df = self._merge_sleep_data_and_sleep_short_data(sleep_entry)
+            else:
+                # Get data
+                sleep_data_dict = sleep_entry[
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
+                ][pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_KEY
+                ]
+                # Create a pd.DataFrame with sleep data
+                sleep_data_df = pd.DataFrame(sleep_data_dict)
+                # Add log id to pd.DataFrame
             sleep_data_df[
                 pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LOG_ID_KEY
             ] = sleep_entry[pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY][
                 pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LOG_ID_KEY
             ]
-
-            # Get shortData if they are there
-            if (
-                pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_SHORT_DATA_KEY
-                in sleep_entry[pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY][
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY
-                ].keys()
-            ) and include_short_data:
-                sleep_short_data_list = sleep_entry[
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
-                ][pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_SHORT_DATA_KEY
-                ]
-                datetime_col = (
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_DATETIME_KEY
-                )
-                seconds_col = (
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_SECONDS_KEY
-                )
-                level_col = (
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_DATA_LEVEL_KEY
-                )
-                # Create a pd.DataFrame with sleep data
-
-                # We need to inject sleep short data in data
-                # 1. Get start and end of sleep from sleep data
-                sleep_data_df[datetime_col] = pd.to_datetime(
-                    sleep_data_df[datetime_col]
-                )
-                sleep_start_dt = sleep_data_df.iloc[0][datetime_col]
-                sleep_end_dt = sleep_data_df.iloc[-1][
-                    datetime_col
-                ] + datetime.timedelta(seconds=int(sleep_data_df.iloc[-1][seconds_col]))
-
-                sleep_data_df = sleep_data_df.set_index(datetime_col)
-
-                # 2. Create new list with short data using 30 seconds windows
-                sleep_short_data_list_copy = []
-                for sleep_short_data_entry in sleep_short_data_list:
-                    start_dt = datetime.datetime.strptime(
-                        sleep_short_data_entry[datetime_col], "%Y-%m-%dT%H:%M:%S.%f"
-                    )
-                    if sleep_short_data_entry[seconds_col] > 30:
-                        n_to_add = int(sleep_short_data_entry[seconds_col] / 30)
-                        for i in range(n_to_add):
-                            sleep_short_data_list_copy.append(
-                                {
-                                    datetime_col: start_dt
-                                    + i * datetime.timedelta(seconds=30),
-                                    level_col: "wake",
-                                    seconds_col: 30,
-                                }
-                            )
-                    else:
-                        sleep_short_data_list_copy.append(
-                            {
-                                datetime_col: start_dt,
-                                level_col: "wake",
-                                seconds_col: sleep_short_data_entry[seconds_col],
-                            }
-                        )
-                # 3. Create DataFrame with sleep short data and get start and end sleep data
-                sleep_short_data_df = pd.DataFrame(sleep_short_data_list_copy)
-                sleep_short_data_df[datetime_col] = pd.to_datetime(
-                    sleep_short_data_df[datetime_col]
-                )
-                sleep_short_data_start_dt = sleep_short_data_df.iloc[0][datetime_col]
-                sleep_short_data_end_dt = sleep_short_data_df.iloc[-1][
-                    datetime_col
-                ] + datetime.timedelta(
-                    seconds=int(sleep_short_data_df.iloc[-1][seconds_col])
-                )
-                sleep_short_data_df = sleep_short_data_df.set_index(datetime_col)
-
-                # 4. Let's create a new dataframe that goes from min sleep time to max sleep time
-                min_sleep_dt = (
-                    sleep_start_dt
-                    if sleep_start_dt < sleep_short_data_start_dt
-                    else sleep_short_data_start_dt
-                )
-                max_sleep_dt = (
-                    sleep_end_dt
-                    if sleep_end_dt > sleep_short_data_end_dt
-                    else sleep_short_data_end_dt
-                )
-
-                new_sleep_data_df_index = pd.Index(
-                    [
-                        min_sleep_dt + i * datetime.timedelta(seconds=30)
-                        for i in range(
-                            int((max_sleep_dt - min_sleep_dt).total_seconds() / 30)
-                        )
-                    ]
-                )
-                new_sleep_data_df = pd.DataFrame(index=new_sleep_data_df_index)
-                new_sleep_data_df.loc[
-                    new_sleep_data_df.index, level_col
-                ] = sleep_data_df[level_col]
-                new_sleep_data_df[level_col] = new_sleep_data_df.ffill()
-                new_sleep_data_df[seconds_col] = 30
-
-                # 5. Inject short data into new dataframe
-                new_sleep_data_df.loc[
-                    sleep_short_data_df.index, level_col
-                ] = sleep_short_data_df[level_col]
-
-                # 6. Create new column with levels and another one for their changes
-                new_sleep_data_df["levelMap"] = pd.factorize(
-                    new_sleep_data_df[level_col]
-                )[0]
-                new_sleep_data_df["levelMapDiff"] = new_sleep_data_df["levelMap"].diff()
-
-                # 7. Create new column with id for each sleep stage
-                new_sleep_data_df["levelGroup"] = (
-                    new_sleep_data_df["levelMap"]
-                    != new_sleep_data_df["levelMap"].shift()
-                ).cumsum()
-                new_sleep_data_df = new_sleep_data_df.reset_index(names=datetime_col)
-                # 8. Get rows when change is detected
-                final_sleep_df = (
-                    new_sleep_data_df[new_sleep_data_df["levelMapDiff"] != 0]
-                    .copy()
-                    .reset_index(drop=True)
-                )
-
-                # 9. Get total seconds with isoDate information
-                final_sleep_df[seconds_col] = (
-                    (
-                        new_sleep_data_df.groupby("levelGroup")[datetime_col].last()
-                        + datetime.timedelta(seconds=30)
-                        - new_sleep_data_df.groupby("levelGroup")[datetime_col].first()
-                    )
-                    .dt.total_seconds()
-                    .reset_index(drop=True)
-                )
-                sleep_data_df = final_sleep_df.copy()
-
-                sleep_data_df = sleep_data_df.drop(
-                    ["levelMap", "levelMapDiff", "levelGroup"], axis=1
-                )
-                sleep_data_df[
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LOG_ID_KEY
-                ] = sleep_entry[pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY][
-                    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LOG_ID_KEY
-                ]
 
             sleep_stage_df = pd.concat(
                 (sleep_stage_df, sleep_data_df), ignore_index=True

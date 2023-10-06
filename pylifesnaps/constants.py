@@ -24,6 +24,14 @@ _ISODATE_COL = "isoDate"
 _TIMEZONEOFFSET_IN_MS_COL = "timezoneOffsetInMs"
 
 ##################################
+#      Sleep Columns           #
+##################################
+_SLEEP_DEEP_DURATION_IN_MS_COL = "deepSleepDurationInMs"
+_SLEEP_LIGHT_DURATION_IN_MS_COL = "lightSleepDurationInMs"
+_SLEEP_REM_DURATION_IN_MS_COL = "remSleepInMs"
+_SLEEP_AWAKE_DURATION_IN_MS_COL = "awakeDurationInMs"
+
+##################################
 #           Database             #
 ##################################
 _DB_NAME = "rais_anonymized"
@@ -115,6 +123,10 @@ _DB_FITBIT_COLLECTION_SLEEP_DATA_AWAKE_COUNT_KEY = "awakeCount"
 _DB_FITBIT_COLLECTION_SLEEP_DATA_AWAKE_MIN_KEY = "awakeMinutes"
 _DB_FITBIT_COLLECTION_SLEEP_DATA_ASLEEP_COUNT_KEY = "asleepCount"
 _DB_FITBIT_COLLECTION_SLEEP_DATA_ASLEEP_MIN_KEY = "asleepMinutes"
+_DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_WAKE_VALUE = "wake"
+_DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_DEEP_VALUE = "deep"
+_DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_LIGHT_VALUE = "light"
+_DB_FITBIT_COLLECTION_SLEEP_DATA_STAGE_REM_VALUE = "rem"
 
 # ---------------------------------------------#
 #      Converted Temperature Documents         #
@@ -204,5 +216,5 @@ _DB_FITBIT_COLLECTION_DISTANCE_VALUE_COL = "value"
 # ----------------------------------#
 #  Estimated Oxygen Variation Docs  #
 # ----------------------------------#
-_DB_FITBIT_COLLECTION_DISTANCE_DATETIME_COL = "dateTime"
-_DB_FITBIT_COLLECTION_DISTANCE_VALUE_COL = "value"
+_DB_FITBIT_COLLECTION_EST_OXY_VAR_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_EST_OXY_VAR_VALUE_COL = "Infrared to Red Signal Ratio"
