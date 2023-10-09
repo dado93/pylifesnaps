@@ -74,6 +74,38 @@ _METRIC_DICT = {
         "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DISTANCE_DATETIME_COL,
         "end_date_key": None,
     },
+    pylifesnaps.constants._METRIC_EST_OXY_VARIATION: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_ESTIMATED_OXYGEN_VARIATION_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_EST_OXY_VAR_DATETIME_COL,
+    },
+    pylifesnaps.constants._METRIC_HEART_RATE: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLETION_DATA_TYPE_HEART_RATE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_HEART_RATE_DATETIME_COL,
+    },
+    pylifesnaps.constants._METRIC_JOURNAL_ENTRIES: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLETION_DATA_TYPE_JOURNAL_ENTRIES,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_JOURNAL_ENTRIES_LOG_TIME_COL,
+    },
+    pylifesnaps.constants._METRIC_LIGHTLY_ACTIVE_MINUTES: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_LIGHTLY_ACTIVE_MINUTES,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_LIGHTLY_ACTIVE_MIN_DATETIME_COL,
+    },
+    pylifesnaps.constants._METRIC_MODERATELY_ACTIVE_MINUTES: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_MODERATELY_ACTIVE_MINUTES,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_MODERATELY_ACTIVE_MIN_DATETIME_COL,
+    },
+    pylifesnaps.constants._METRIC_VERY_ACTIVE_MINUTES: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_VERY_ACTIVE_MINUTES,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_VERY_ACTIVE_MIN_DATETIME_COL,
+    },
+    pylifesnaps.constants._METRIC_SEDENTARY_MINUTES: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_SEDENTARY_MINUTES,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_SEDENTARY_MIN_DATETIME_COL,
+    },
+    pylifesnaps.constants._METRIC_STEPS: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_STEPS,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_STEPS_DATETIME_COL,
+    },
 }
 
 
@@ -228,18 +260,6 @@ class LifeSnapsLoader:
                     )
                 else:
                     temp_df[pylifesnaps.constants._SLEEP_DEEP_DURATION_IN_MS_COL] = 0
-
-            # Get sleep stage duration from sleep stages -> otherwise we have information in minutes
-            # stages_info = sleep_summary[
-            #    pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY
-            # ][pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_KEY][
-            #    pylifesnaps.constants._DB_FITBIT_COLLECTION_SLEEP_DATA_LEVELS_SUMMARY_KEY
-            # ]
-            # for stage_name, stage_values in stages_info.items():
-            #    for stage_values_key, stage_values_value in stage_values.items():
-            #        temp_df[
-            #            f"{stage_name}{stage_values_key.title()}"
-            #        ] = stage_values_value
 
             sleep_summary_df = pd.concat((sleep_summary_df, temp_df), ignore_index=True)
         if len(sleep_summary_df) > 0:
@@ -413,22 +433,6 @@ class LifeSnapsLoader:
         )
         return sleep_data_df
 
-    def _get_raw_sleep_data(
-        self,
-        user_id: Union[ObjectId, str],
-        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
-        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    ) -> list:
-        pass
-
-    def _get_raw_sleep_short_data(
-        self,
-        user_id: Union[ObjectId, str],
-        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
-        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
-    ) -> list:
-        pass
-
     def load_sleep_stage(
         self,
         user_id: Union[ObjectId, str],
@@ -539,7 +543,10 @@ class LifeSnapsLoader:
         end_date = pylifesnaps.utils.convert_to_datetime(end_date)
 
         metric_start_key = _METRIC_DICT[metric]["start_date_key"]
-        metric_end_key = _METRIC_DICT[metric]["end_date_key"]
+        if "end_date_key" in _METRIC_DICT[metric].keys():
+            metric_end_key = _METRIC_DICT[metric]["end_date_key"]
+        else:
+            metric_end_key = None
         if metric_start_key is None:
             metric_start_date_key_db = None
         else:
@@ -587,7 +594,8 @@ class LifeSnapsLoader:
             entry[pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_KEY]
             for entry in filtered_coll
         ]
-        metric_df = pd.DataFrame(list_of_metric_dict)
+
+        metric_df = pd.json_normalize(list_of_metric_dict)
         if len(metric_df) > 0 and (metric_start_key is not None):
             metric_df = metric_df.sort_values(by=metric_start_key).reset_index(
                 drop=True
@@ -845,7 +853,14 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        est_oxy_variation = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_EST_OXY_VARIATION,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        est_oxy_variation = self._reorder_datetime_columns(est_oxy_variation)
+        return est_oxy_variation
 
     def load_exercise(
         self,
@@ -861,7 +876,25 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        heart_rate = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_HEART_RATE,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        if len(heart_rate) > 0:
+            heart_rate = heart_rate.rename(
+                columns={
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_HEART_RATE_VALUE_KEY
+                    + "."
+                    + pylifesnaps.constants._DB_FITBIT_COLLECTION_HEART_RATE_VALUE_BPM_COL: pylifesnaps.constants._DB_FITBIT_COLLECTION_HEART_RATE_VALUE_BPM_COL,
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_HEART_RATE_VALUE_KEY
+                    + "."
+                    + pylifesnaps.constants._DB_FITBIT_COLLECTION_HEART_RATE_VALUE_CONFIDENCE_COL: pylifesnaps.constants._DB_FITBIT_COLLECTION_HEART_RATE_VALUE_CONFIDENCE_COL,
+                }
+            )
+            heart_rate = self._reorder_datetime_columns(heart_rate)
+        return heart_rate
 
     def load_journal_entries(
         self,
@@ -869,15 +902,29 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        journal_entries = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_JOURNAL_ENTRIES,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        journal_entries = self._reorder_datetime_columns(journal_entries)
+        return journal_entries
 
-    def load_lighly_active_minutes(
+    def load_lightly_active_minutes(
         self,
         user_id: Union[ObjectId, str],
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        lightly_active_minutes = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_LIGHTLY_ACTIVE_MINUTES,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        lightly_active_minutes = self._reorder_datetime_columns(lightly_active_minutes)
+        return lightly_active_minutes
 
     def load_mindfulness_eda_data_sessions(
         self,
@@ -909,7 +956,14 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        moderately_active_min = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_MODERATELY_ACTIVE_MINUTES,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        moderately_active_min = self._reorder_datetime_columns(moderately_active_min)
+        return moderately_active_min
 
     def load_resting_heart_rate(
         self,
@@ -925,7 +979,14 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        sedentary_min = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_SEDENTARY_MINUTES,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        sedentary_min = self._reorder_datetime_columns(sedentary_min)
+        return sedentary_min
 
     def load_steps(
         self,
@@ -933,7 +994,30 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        steps = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_STEPS,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        steps = self._reorder_datetime_columns(steps)
+        steps = steps.rename(
+            columns={
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_STEPS_VALUE_COL: pylifesnaps.constants._STEPS_COL
+            }
+        )
+        # Compute daily steps column
+        steps[pylifesnaps.constants._CALENDAR_DATE_COL] = pd.to_datetime(
+            steps[pylifesnaps.constants._ISODATE_COL].dt.strftime("%Y-%m-%d"),
+        )
+        steps[pylifesnaps.constants._STEPS_COL] = steps[
+            pylifesnaps.constants._STEPS_COL
+        ].astype("int64")
+        steps[pylifesnaps.constants._TOTAL_STEPS_COL] = steps.groupby(
+            [pylifesnaps.constants._CALENDAR_DATE_COL]
+        )[pylifesnaps.constants._STEPS_COL].cumsum()
+        steps = steps.drop([pylifesnaps.constants._CALENDAR_DATE_COL], axis=1)
+        return steps
 
     def load_time_in_heart_rate_zones(
         self,
@@ -949,7 +1033,14 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        very_active_minutes = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_VERY_ACTIVE_MINUTES,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        very_active_minutes = self._reorder_datetime_columns(very_active_minutes)
+        return very_active_minutes
 
     def load_water_logs(
         self,
@@ -973,12 +1064,6 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
-
-    def get_sema_statistics():
-        pass
-
-    def get_sleep_statistics():
         pass
 
     def _get_start_and_end_date_time_filter_dict(
@@ -1041,15 +1126,34 @@ class LifeSnapsLoader:
 
     def _setup_datetime_columns(self, df: pd.DataFrame, metric: str):
         if len(df) > 0:
-            df = df.rename(
-                columns={
-                    _METRIC_DICT[metric][
-                        "start_date_key"
-                    ]: pylifesnaps.constants._ISODATE_COL
-                }
-            )
-            df[pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL] = df[
-                pylifesnaps.constants._ISODATE_COL
-            ].apply(lambda x: int(x.timestamp() * 1000))
-            df[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
+            if "start_date_key" in _METRIC_DICT[metric].keys():
+                if not (_METRIC_DICT[metric]["start_date_key"] is None):
+                    df = df.rename(
+                        columns={
+                            _METRIC_DICT[metric][
+                                "start_date_key"
+                            ]: pylifesnaps.constants._ISODATE_COL
+                        }
+                    )
+                    df[pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL] = df[
+                        pylifesnaps.constants._ISODATE_COL
+                    ].apply(lambda x: int(x.timestamp() * 1000))
+                    df[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL] = 0
+        return df
+
+    def _reorder_datetime_columns(self, df: pd.DataFrame):
+        if len(df) > 0:
+            if {
+                pylifesnaps.constants._ISODATE_COL,
+                pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL,
+                pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL,
+            }.issubset(df.columns):
+                for col_idx, col in enumerate(
+                    [
+                        pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL,
+                        pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL,
+                        pylifesnaps.constants._ISODATE_COL,
+                    ]
+                ):
+                    df.insert(col_idx, col, df.pop(col))
         return df

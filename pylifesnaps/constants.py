@@ -15,6 +15,14 @@ _METRIC_BADGE = "badge"
 _METRIC_CALORIES = "calories"
 
 _METRIC_DISTANCE = "distance"
+_METRIC_EST_OXY_VARIATION = "estimated-oxygen-variation"
+_METRIC_HEART_RATE = "heart-rate"
+_METRIC_JOURNAL_ENTRIES = "journal_entries"
+_METRIC_LIGHTLY_ACTIVE_MINUTES = "lightly-active-minutes"
+_METRIC_MODERATELY_ACTIVE_MINUTES = "moderately-active-minutes"
+_METRIC_SEDENTARY_MINUTES = "sedentary-minutes"
+_METRIC_VERY_ACTIVE_MINUTES = "very_active_minutes"
+_METRIC_STEPS = "steps"
 
 ##################################
 #      General Columns           #
@@ -22,6 +30,9 @@ _METRIC_DISTANCE = "distance"
 _UNIXTIMESTAMP_IN_MS_COL = "unixTimestampInMs"
 _ISODATE_COL = "isoDate"
 _TIMEZONEOFFSET_IN_MS_COL = "timezoneOffsetInMs"
+_STEPS_COL = "steps"
+_TOTAL_STEPS_COL = "totalSteps"
+_CALENDAR_DATE_COL = "calendarDate"
 
 ##################################
 #      Sleep Columns           #
@@ -68,12 +79,20 @@ _DB_FITBIT_COLLECTION_DATA_TYPE_BADGE_VALUE = "badge"
 _DB_FITBIT_COLLECTION_DATA_TYPE_CALORIES_VALUE = "calories"
 _DB_FITBIT_COLLECTION_DATA_TYPE_DEMOGRAPHIC_VO2_MAX_VALUE = "demographic_vo2_max"
 _DB_FITBIT_COLLECTION_DATA_TYPE_DISTANCE_VALUE = "distance"
-
+_DB_FITBIT_COLLECTION_DATA_TYPE_ESTIMATED_OXYGEN_VARIATION_VALUE = (
+    "estimated_oxygen_variation"
+)
+_DB_FITBIT_COLLETION_DATA_TYPE_HEART_RATE = "heart_rate"
+_DB_FITBIT_COLLETION_DATA_TYPE_JOURNAL_ENTRIES = "journal_entries"
+_DB_FITBIT_COLLECTION_DATA_TYPE_LIGHTLY_ACTIVE_MINUTES = "lightly_active_minutes"
+_DB_FITBIT_COLLECTION_DATA_TYPE_MODERATELY_ACTIVE_MINUTES = "moderately_active_minutes"
+_DB_FITBIT_COLLECTION_DATA_TYPE_SEDENTARY_MINUTES = "sedentary_minutes"
+_DB_FITBIT_COLLECTION_DATA_TYPE_VERY_ACTIVE_MINUTES = "very_active_minutes"
+_DB_FITBIT_COLLECTION_DATA_TYPE_STEPS = "steps"
 """
-'estimated_oxygen_variation', 
-'exercise', 'heart_rate', 'journal_entries', 'lightly_active_minutes', 'mindfulness_eda_data_sessions', 'mindfulness_goals', 
-'mindfulness_sessions', 'moderately_active_minutes', 'resting_heart_rate', 'sedentary_minutes', 'sleep', 'steps',
-'time_in_heart_rate_zones', 'very_active_minutes', 'water_logs']
+'exercise', 'mindfulness_eda_data_sessions', 'mindfulness_goals', 
+'mindfulness_sessions', 'resting_heart_rate', 
+'time_in_heart_rate_zones', 'water_logs']
 """
 
 
@@ -216,5 +235,51 @@ _DB_FITBIT_COLLECTION_DISTANCE_VALUE_COL = "value"
 # ----------------------------------#
 #  Estimated Oxygen Variation Docs  #
 # ----------------------------------#
-_DB_FITBIT_COLLECTION_EST_OXY_VAR_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_EST_OXY_VAR_DATETIME_COL = "timestamp"
 _DB_FITBIT_COLLECTION_EST_OXY_VAR_VALUE_COL = "Infrared to Red Signal Ratio"
+
+# ----------------------------------#
+#        Heart Rate Docs            #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_HEART_RATE_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_HEART_RATE_VALUE_KEY = "value"
+_DB_FITBIT_COLLECTION_HEART_RATE_VALUE_BPM_COL = "bpm"
+_DB_FITBIT_COLLECTION_HEART_RATE_VALUE_CONFIDENCE_COL = "confidence"
+
+# ----------------------------------#
+#       Journal Entries Docs        #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_JOURNAL_ENTRIES_LOG_TIME_COL = "log_time"
+_DB_FITBIT_COLLECTION_JOURNAL_ENTRIES_LOG_TYPE_COL = "log_type"
+_DB_FITBIT_COLLECTION_JOURNAL_ENTRIES_PLATFORM_COL = "platform"
+_DB_FITBIT_COLLECTION_JOURNAL_ENTRIES_SOURCE_COL = "source"
+
+# ----------------------------------#
+#    Lightly Active Minutes Docs    #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_LIGHTLY_ACTIVE_MIN_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_LIGHTLY_ACTIVE_MIN_VALUE_COL = "value"
+
+# ----------------------------------#
+#   Moderately Active Minutes Docs  #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_MODERATELY_ACTIVE_MIN_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_MODERATELY_ACTIVE_MIN_VALUE_COL = "value"
+
+# ----------------------------------#
+#    Very Active Minutes Docs       #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_VERY_ACTIVE_MIN_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_VERY_ACTIVE_MIN_VALUE_COL = "value"
+
+# ----------------------------------#
+#     Sedentary Minutes Docs        #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_SEDENTARY_MIN_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_SEDENTARY_MIN_VALUE_COL = "value"
+
+# ----------------------------------#
+#           Steps Docs              #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_STEPS_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_STEPS_VALUE_COL = "value"
