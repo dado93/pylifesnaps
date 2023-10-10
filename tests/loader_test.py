@@ -378,7 +378,7 @@ def test_load_sedentary_minutes(
     )
 
 
-def test_steps(
+def test_load_steps(
     lifesnaps_loader: pylifesnaps.loader.LifeSnapsLoader,
 ):
     user_id = "621e2eaf67b776a2406b14ac"
@@ -392,3 +392,37 @@ def test_steps(
     assert pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL in steps.columns
     assert pylifesnaps.constants._ISODATE_COL in steps.columns
     assert pylifesnaps.constants._DB_FITBIT_COLLECTION_STEPS_VALUE_COL in steps.columns
+
+
+def test_load_resting_heart_rate(
+    lifesnaps_loader: pylifesnaps.loader.LifeSnapsLoader,
+):
+    user_id = "621e2eaf67b776a2406b14ac"
+    start_date = datetime.datetime(2021, 11, 1)
+    end_date = datetime.datetime(2021, 11, 10)
+    resting_hr = lifesnaps_loader.load_resting_heart_rate(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+    assert isinstance(resting_hr, pd.DataFrame)
+    assert pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL in resting_hr.columns
+    assert pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL in resting_hr.columns
+    assert pylifesnaps.constants._ISODATE_COL in resting_hr.columns
+    assert (
+        pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_VALUE_COL
+        in resting_hr.columns
+    )
+
+
+def test_load_time_in_hr_zones(
+    lifesnaps_loader: pylifesnaps.loader.LifeSnapsLoader,
+):
+    user_id = "621e2eaf67b776a2406b14ac"
+    start_date = datetime.datetime(2021, 11, 1)
+    end_date = datetime.datetime(2021, 11, 10)
+    resting_hr = lifesnaps_loader.load_time_in_heart_rate_zones(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+    assert isinstance(resting_hr, pd.DataFrame)
+    assert pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL in resting_hr.columns
+    assert pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL in resting_hr.columns
+    assert pylifesnaps.constants._ISODATE_COL in resting_hr.columns

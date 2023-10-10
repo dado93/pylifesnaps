@@ -4,7 +4,7 @@
 _METRIC_SPO2 = "daily-spo2"
 _METRIC_COMP_TEMP = "temprature-computed"
 _METRIC_DEVICE_TEMP = "temperature-device"
-_METRIC_DAILY_HRV_SUMMARY = "daily-hrv-summary"
+_METRIC_DAILY_HRV_SUMMARY = "hrv-daily-summary"
 _METRIC_HRV_DETAILS = "hrv-details"
 _METRIC_PROFILE = "profile"
 _METRIC_RESPIRATORY_RATE_SUMMARY = "respiratory-rate-summary"
@@ -13,7 +13,7 @@ _METRIC_WRIST_TEMPERATURE = "temperature-wrist"
 _METRIC_ALTITUDE = "altitude"
 _METRIC_BADGE = "badge"
 _METRIC_CALORIES = "calories"
-
+_METRIC_HRV_HISTOGRAM = "hrv-histogram"
 _METRIC_DISTANCE = "distance"
 _METRIC_EST_OXY_VARIATION = "estimated-oxygen-variation"
 _METRIC_HEART_RATE = "heart-rate"
@@ -23,6 +23,10 @@ _METRIC_MODERATELY_ACTIVE_MINUTES = "moderately-active-minutes"
 _METRIC_SEDENTARY_MINUTES = "sedentary-minutes"
 _METRIC_VERY_ACTIVE_MINUTES = "very_active_minutes"
 _METRIC_STEPS = "steps"
+_METRIC_WATER_LOGS = "water-logs"
+_METRIC_RESTING_HEART_RATE = "resting-heart-rate"
+_METRIC_TIME_IN_HR_ZONES = "time-in-hr-zones"
+_METRIC_DEMOGRAPHIC_VO2_MAX = "demographic-vo2-max"
 
 ##################################
 #      General Columns           #
@@ -35,12 +39,18 @@ _TOTAL_STEPS_COL = "totalSteps"
 _CALENDAR_DATE_COL = "calendarDate"
 
 ##################################
-#      Sleep Columns           #
+#        Sleep Columns           #
 ##################################
 _SLEEP_DEEP_DURATION_IN_MS_COL = "deepSleepDurationInMs"
 _SLEEP_LIGHT_DURATION_IN_MS_COL = "lightSleepDurationInMs"
 _SLEEP_REM_DURATION_IN_MS_COL = "remSleepInMs"
 _SLEEP_AWAKE_DURATION_IN_MS_COL = "awakeDurationInMs"
+
+##################################
+#     HRV Histogram Columns      #
+##################################
+_HRV_HISTOGRAM_BUCKET_WIDTHS_COL = "bucketWidths"
+_HRV_HISTOGRAM_BUCKET_VALUES_COL = "bucketValues"
 
 ##################################
 #           Database             #
@@ -82,17 +92,20 @@ _DB_FITBIT_COLLECTION_DATA_TYPE_DISTANCE_VALUE = "distance"
 _DB_FITBIT_COLLECTION_DATA_TYPE_ESTIMATED_OXYGEN_VARIATION_VALUE = (
     "estimated_oxygen_variation"
 )
-_DB_FITBIT_COLLETION_DATA_TYPE_HEART_RATE = "heart_rate"
-_DB_FITBIT_COLLETION_DATA_TYPE_JOURNAL_ENTRIES = "journal_entries"
+_DB_FITBIT_COLLECTION_DATA_TYPE_HEART_RATE = "heart_rate"
+_DB_FITBIT_COLLECTION_DATA_TYPE_JOURNAL_ENTRIES = "journal_entries"
 _DB_FITBIT_COLLECTION_DATA_TYPE_LIGHTLY_ACTIVE_MINUTES = "lightly_active_minutes"
 _DB_FITBIT_COLLECTION_DATA_TYPE_MODERATELY_ACTIVE_MINUTES = "moderately_active_minutes"
 _DB_FITBIT_COLLECTION_DATA_TYPE_SEDENTARY_MINUTES = "sedentary_minutes"
 _DB_FITBIT_COLLECTION_DATA_TYPE_VERY_ACTIVE_MINUTES = "very_active_minutes"
 _DB_FITBIT_COLLECTION_DATA_TYPE_STEPS = "steps"
+_DB_FITBIT_COLLECTION_DATA_TYPE_WATER_LOGS = "water_logs"
+_DB_FITBIT_COLLECTION_DATA_TYPE_RESTING_HEART_RATE = "resting_heart_rate"
+_DB_FITBIT_COLLECTION_DATA_TYPE_TIME_IN_HR_ZONES = "time_in_heart_rate_zones"
+
 """
 'exercise', 'mindfulness_eda_data_sessions', 'mindfulness_goals', 
-'mindfulness_sessions', 'resting_heart_rate', 
-'time_in_heart_rate_zones', 'water_logs']
+'mindfulness_sessions', ]
 """
 
 
@@ -283,3 +296,35 @@ _DB_FITBIT_COLLECTION_SEDENTARY_MIN_VALUE_COL = "value"
 # ----------------------------------#
 _DB_FITBIT_COLLECTION_STEPS_DATETIME_COL = "dateTime"
 _DB_FITBIT_COLLECTION_STEPS_VALUE_COL = "value"
+
+# ----------------------------------#
+#       Water Logs Docs             #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_WATER_LOGS_DATE_COL = "date"
+_DB_FITBIT_COLLECTION_WATER_LOGS_WATER_AMOUNT_COL = "waterAmount"
+_DB_FITBIT_COLLECTION_WATER_LOGS_MEASUREMENT_UNIT_COL = "measurementUnit"
+
+# ----------------------------------#
+#    Resting Heart Rate Docs        #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_RESTING_HEART_RATE_DATETIME_COL = "dateTime"
+_DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_KEY = "value"
+_DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_VALUE_COL = "value"
+_DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_ERROR_COL = "error"
+_DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_DATE_COL = "date"
+
+# ----------------------------------#
+#      Time in HR Zones Docs        #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_TIME_IN_HR_ZONES_DATETIME_COL = "dateTime"
+
+# ----------------------------------#
+#        HRV Histogram Docs         #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_HRV_HISTOGRAM_TIMESTAMP_COL = "timestamp"
+_DB_FITBIT_COLLECTION_HRV_HISTOGRAM_BUCKET_VALUES_COL = "bucket_values"
+
+# ----------------------------------#
+#    Demographic VO2 Max Docs       #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_DEMOGRAPHIC_VO2_MAX_DATETIME_COL = "dateTime"
