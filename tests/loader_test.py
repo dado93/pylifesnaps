@@ -419,10 +419,26 @@ def test_load_time_in_hr_zones(
     user_id = "621e2eaf67b776a2406b14ac"
     start_date = datetime.datetime(2021, 11, 1)
     end_date = datetime.datetime(2021, 11, 10)
-    resting_hr = lifesnaps_loader.load_time_in_heart_rate_zones(
+    time_in_hr_zones = lifesnaps_loader.load_time_in_heart_rate_zones(
         user_id=user_id, start_date=start_date, end_date=end_date
     )
-    assert isinstance(resting_hr, pd.DataFrame)
-    assert pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL in resting_hr.columns
-    assert pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL in resting_hr.columns
-    assert pylifesnaps.constants._ISODATE_COL in resting_hr.columns
+    assert isinstance(time_in_hr_zones, pd.DataFrame)
+    assert pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL in time_in_hr_zones.columns
+    assert pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL in time_in_hr_zones.columns
+    assert pylifesnaps.constants._ISODATE_COL in time_in_hr_zones.columns
+
+
+def test_load_ecg(
+    lifesnaps_loader: pylifesnaps.loader.LifeSnapsLoader,
+):
+    user_id = "621e32af67b776a24045b4cf"
+    start_date = datetime.datetime(2021, 5, 24)
+    end_date = datetime.datetime(2021, 5, 25)
+    ecg = lifesnaps_loader.load_ecg(
+        user_id=user_id, start_date=start_date, end_date=end_date
+    )
+    assert isinstance(ecg, pd.DataFrame)
+    assert pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL in ecg.columns
+    assert pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL in ecg.columns
+    assert pylifesnaps.constants._ISODATE_COL in ecg.columns
+    assert pylifesnaps.constants._ECG_SAMPLE_VALUE_COL in ecg.columns

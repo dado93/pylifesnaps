@@ -27,6 +27,8 @@ _METRIC_WATER_LOGS = "water-logs"
 _METRIC_RESTING_HEART_RATE = "resting-heart-rate"
 _METRIC_TIME_IN_HR_ZONES = "time-in-hr-zones"
 _METRIC_DEMOGRAPHIC_VO2_MAX = "demographic-vo2-max"
+_METRIC_ECG = "ecg"
+_METRIC_MINDFULNESS_GOALS = "mindfulness-goals"
 
 ##################################
 #      General Columns           #
@@ -51,6 +53,11 @@ _SLEEP_AWAKE_DURATION_IN_MS_COL = "awakeDurationInMs"
 ##################################
 _HRV_HISTOGRAM_BUCKET_WIDTHS_COL = "bucketWidths"
 _HRV_HISTOGRAM_BUCKET_VALUES_COL = "bucketValues"
+
+##################################
+#           ECG Columns          #
+##################################
+_ECG_SAMPLE_VALUE_COL = "value"
 
 ##################################
 #           Database             #
@@ -102,9 +109,9 @@ _DB_FITBIT_COLLECTION_DATA_TYPE_STEPS = "steps"
 _DB_FITBIT_COLLECTION_DATA_TYPE_WATER_LOGS = "water_logs"
 _DB_FITBIT_COLLECTION_DATA_TYPE_RESTING_HEART_RATE = "resting_heart_rate"
 _DB_FITBIT_COLLECTION_DATA_TYPE_TIME_IN_HR_ZONES = "time_in_heart_rate_zones"
-
+_DB_FITBIT_COLLECTION_DATA_TYPE_MINDFULNESS_GOALS = "mindfulness_goals"
 """
-'exercise', 'mindfulness_eda_data_sessions', 'mindfulness_goals', 
+'exercise', 'mindfulness_eda_data_sessions', 
 'mindfulness_sessions', ]
 """
 
@@ -328,3 +335,14 @@ _DB_FITBIT_COLLECTION_HRV_HISTOGRAM_BUCKET_VALUES_COL = "bucket_values"
 #    Demographic VO2 Max Docs       #
 # ----------------------------------#
 _DB_FITBIT_COLLECTION_DEMOGRAPHIC_VO2_MAX_DATETIME_COL = "dateTime"
+
+# ----------------------------------#
+#       ECG Recordings Docs         #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_AFIB_ECG_READINGS_DATETIME_COL = "reading_time"
+_DB_FITBIT_COLLECTION_AFIB_ECG_READINGS_WAVEFORM_SAMPLES_COL = "waveform_samples"
+
+# ----------------------------------#
+#     Mindfulness Goals Docs        #
+# ----------------------------------#
+_DB_FITBIT_COLLECTION_MINDFULNESS_GOALS_DATE_COL = "date"

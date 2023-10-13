@@ -128,6 +128,14 @@ _METRIC_DICT = {
         "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_DEMOGRAPHIC_VO2_MAX_VALUE,
         "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DEMOGRAPHIC_VO2_MAX_DATETIME_COL,
     },
+    pylifesnaps.constants._METRIC_ECG: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_AFIB_ECG_READINGS_VALUE,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_AFIB_ECG_READINGS_DATETIME_COL,
+    },
+    pylifesnaps.constants._METRIC_MINDFULNESS_GOALS: {
+        "metric_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_DATA_TYPE_MINDFULNESS_GOALS,
+        "start_date_key": pylifesnaps.constants._DB_FITBIT_COLLECTION_MINDFULNESS_GOALS_DATE_COL,
+    },
 }
 
 
@@ -702,6 +710,63 @@ class LifeSnapsLoader:
             end_date=end_date,
         )
 
+    def load_ecg(
+        self,
+        user_id: Union[ObjectId, str],
+        start_date: Union[datetime.datetime, datetime.date, str, None] = None,
+        end_date: Union[datetime.datetime, datetime.date, str, None] = None,
+    ) -> pd.DataFrame:
+        ecg = self.load_metric(
+            metric=pylifesnaps.constants._METRIC_ECG,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        ecg = self._reorder_datetime_columns(ecg)
+        if len(ecg) > 0:
+            # Reformat wave form samples
+            ecg[
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_AFIB_ECG_READINGS_WAVEFORM_SAMPLES_COL
+            ] = ecg[
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_AFIB_ECG_READINGS_WAVEFORM_SAMPLES_COL
+            ].apply(
+                lambda x: literal_eval(x.replace("  ", ","))
+            )
+            # Get number of samples
+            ecg["nSamples"] = ecg[
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_AFIB_ECG_READINGS_WAVEFORM_SAMPLES_COL
+            ].apply(lambda x: len(x))
+            # Get time info
+            ecg["timeInMs"] = ecg["nSamples"].apply(
+                lambda x: [1 / (512 / y) * 1000 if y > 0 else 0 for y in range(x)]
+            )
+            ecg = ecg.drop(["nSamples"], axis=1)
+
+            # Explode waveform samples
+            ecg = ecg.explode(
+                column=[
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_AFIB_ECG_READINGS_WAVEFORM_SAMPLES_COL,
+                    "timeInMs",
+                ],
+                ignore_index=True,
+            )
+            ecg[pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL] = (
+                ecg[pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL] + ecg["timeInMs"]
+            )
+            ecg[pylifesnaps.constants._ISODATE_COL] = pd.to_datetime(
+                ecg[pylifesnaps.constants._UNIXTIMESTAMP_IN_MS_COL]
+                + ecg[pylifesnaps.constants._TIMEZONEOFFSET_IN_MS_COL],
+                unit="ms",
+                utc=True,
+            ).dt.tz_localize(None)
+            ecg = ecg.drop(["timeInMs"], axis=1)
+            ecg = ecg.rename(
+                columns={
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_AFIB_ECG_READINGS_WAVEFORM_SAMPLES_COL: pylifesnaps.constants._ECG_SAMPLE_VALUE_COL
+                }
+            )
+        return ecg
+
     def load_device_temperature(
         self,
         user_id: Union[ObjectId, str],
@@ -754,36 +819,37 @@ class LifeSnapsLoader:
             start_date=start_date,
             end_date=end_date,
         )
-        # Convert bucket_values string to list of floats
-        hrv_histogram[
-            pylifesnaps.constants._DB_FITBIT_COLLECTION_HRV_HISTOGRAM_BUCKET_VALUES_COL
-        ] = hrv_histogram[
-            pylifesnaps.constants._DB_FITBIT_COLLECTION_HRV_HISTOGRAM_BUCKET_VALUES_COL
-        ].apply(
-            literal_eval
-        )
-        # Add calendar date
-        hrv_histogram[pylifesnaps.constants._CALENDAR_DATE_COL] = hrv_histogram[
-            pylifesnaps.constants._ISODATE_COL
-        ].dt.date
-        # Add bucket widths
-        hrv_histogram[pylifesnaps.constants._HRV_HISTOGRAM_BUCKET_WIDTHS_COL] = [
-            [0.3 + 0.05 * x for x in range(29)] for y in range(len(hrv_histogram))
-        ]
-        # Explode bucket values
-        hrv_histogram = hrv_histogram.explode(
-            column=[
-                pylifesnaps.constants._DB_FITBIT_COLLECTION_HRV_HISTOGRAM_BUCKET_VALUES_COL,
-                pylifesnaps.constants._HRV_HISTOGRAM_BUCKET_WIDTHS_COL,
-            ],
-            ignore_index=True,
-        )
-        # Rename bucket values col
-        hrv_histogram = hrv_histogram.rename(
-            columns={
-                pylifesnaps.constants._DB_FITBIT_COLLECTION_HRV_HISTOGRAM_BUCKET_VALUES_COL: pylifesnaps.constants._HRV_HISTOGRAM_BUCKET_VALUES_COL
-            }
-        )
+        if len(hrv_histogram) > 0:
+            # Convert bucket_values string to list of floats
+            hrv_histogram[
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_HRV_HISTOGRAM_BUCKET_VALUES_COL
+            ] = hrv_histogram[
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_HRV_HISTOGRAM_BUCKET_VALUES_COL
+            ].apply(
+                literal_eval
+            )
+            # Add calendar date
+            hrv_histogram[pylifesnaps.constants._CALENDAR_DATE_COL] = hrv_histogram[
+                pylifesnaps.constants._ISODATE_COL
+            ].dt.date
+            # Add bucket widths
+            hrv_histogram[pylifesnaps.constants._HRV_HISTOGRAM_BUCKET_WIDTHS_COL] = [
+                [0.3 + 0.05 * x for x in range(29)] for y in range(len(hrv_histogram))
+            ]
+            # Explode bucket values
+            hrv_histogram = hrv_histogram.explode(
+                column=[
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_HRV_HISTOGRAM_BUCKET_VALUES_COL,
+                    pylifesnaps.constants._HRV_HISTOGRAM_BUCKET_WIDTHS_COL,
+                ],
+                ignore_index=True,
+            )
+            # Rename bucket values col
+            hrv_histogram = hrv_histogram.rename(
+                columns={
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_HRV_HISTOGRAM_BUCKET_VALUES_COL: pylifesnaps.constants._HRV_HISTOGRAM_BUCKET_VALUES_COL
+                }
+            )
         hrv_histogram = self._reorder_datetime_columns(hrv_histogram)
         return hrv_histogram
 
@@ -897,11 +963,12 @@ class LifeSnapsLoader:
             end_date=end_date,
         )
         demographic_vo2_max = self._reorder_datetime_columns(demographic_vo2_max)
-        col_dot_dict = {}
-        for col in demographic_vo2_max.columns:
-            if "." in col:
-                col_dot_dict[col] = col.split(".")[-1]
-        demographic_vo2_max = demographic_vo2_max.rename(columns=col_dot_dict)
+        if len(demographic_vo2_max) > 0:
+            col_dot_dict = {}
+            for col in demographic_vo2_max.columns:
+                if "." in col:
+                    col_dot_dict[col] = col.split(".")[-1]
+            demographic_vo2_max = demographic_vo2_max.rename(columns=col_dot_dict)
         return demographic_vo2_max
 
     def load_distance(
@@ -1011,7 +1078,12 @@ class LifeSnapsLoader:
         start_date: Union[datetime.datetime, datetime.date, str, None] = None,
         end_date: Union[datetime.datetime, datetime.date, str, None] = None,
     ) -> pd.DataFrame:
-        pass
+        return self.load_metric(
+            metric=pylifesnaps.constants._METRIC_MINDFULNESS_GOALS,
+            user_id=user_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
     def load_mindfulness_sessions(
         self,
@@ -1049,45 +1121,46 @@ class LifeSnapsLoader:
             end_date=end_date,
         )
         resting_heart_rate = self._reorder_datetime_columns(resting_heart_rate)
-        # Save column names
-        value_date_col = (
-            pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_KEY
-            + "."
-            + pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_DATE_COL
-        )
-        value_value_col = (
-            pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_KEY
-            + "."
-            + pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_VALUE_COL
-        )
-        value_error_col = (
-            pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_KEY
-            + "."
-            + pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_ERROR_COL
-        )
-        # Fill None dates with np.nan
-        resting_heart_rate[value_date_col] = resting_heart_rate[value_date_col].fillna(
-            np.nan
-        )
-        # Remove np.nan dates
-        resting_heart_rate = resting_heart_rate[
-            ~resting_heart_rate[value_date_col].isna()
-        ].reset_index(drop=True)
-        # Change column names
-        resting_heart_rate = resting_heart_rate.rename(
-            columns={
-                value_date_col: pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_DATE_COL,
-                value_value_col: pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_VALUE_COL,
-                value_error_col: pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_ERROR_COL,
-            }
-        )
-        # Drop second date column
-        resting_heart_rate = resting_heart_rate.drop(
-            [
-                pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_DATE_COL
-            ],
-            axis=1,
-        )
+        if len(resting_heart_rate) > 0:
+            # Save column names
+            value_date_col = (
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_KEY
+                + "."
+                + pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_DATE_COL
+            )
+            value_value_col = (
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_KEY
+                + "."
+                + pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_VALUE_COL
+            )
+            value_error_col = (
+                pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_KEY
+                + "."
+                + pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_ERROR_COL
+            )
+            # Fill None dates with np.nan
+            resting_heart_rate[value_date_col] = resting_heart_rate[
+                value_date_col
+            ].fillna(np.nan)
+            # Remove np.nan dates
+            resting_heart_rate = resting_heart_rate[
+                ~resting_heart_rate[value_date_col].isna()
+            ].reset_index(drop=True)
+            # Change column names
+            resting_heart_rate = resting_heart_rate.rename(
+                columns={
+                    value_date_col: pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_DATE_COL,
+                    value_value_col: pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_VALUE_COL,
+                    value_error_col: pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_ERROR_COL,
+                }
+            )
+            # Drop second date column
+            resting_heart_rate = resting_heart_rate.drop(
+                [
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_RESTING_HEART_RATE_VALUE_DATE_COL
+                ],
+                axis=1,
+            )
 
         return resting_heart_rate
 
@@ -1119,22 +1192,23 @@ class LifeSnapsLoader:
             end_date=end_date,
         )
         steps = self._reorder_datetime_columns(steps)
-        steps = steps.rename(
-            columns={
-                pylifesnaps.constants._DB_FITBIT_COLLECTION_STEPS_VALUE_COL: pylifesnaps.constants._STEPS_COL
-            }
-        )
-        # Compute daily steps column
-        steps[pylifesnaps.constants._CALENDAR_DATE_COL] = pd.to_datetime(
-            steps[pylifesnaps.constants._ISODATE_COL].dt.strftime("%Y-%m-%d"),
-        )
-        steps[pylifesnaps.constants._STEPS_COL] = steps[
-            pylifesnaps.constants._STEPS_COL
-        ].astype("int64")
-        steps[pylifesnaps.constants._TOTAL_STEPS_COL] = steps.groupby(
-            [pylifesnaps.constants._CALENDAR_DATE_COL]
-        )[pylifesnaps.constants._STEPS_COL].cumsum()
-        steps = steps.drop([pylifesnaps.constants._CALENDAR_DATE_COL], axis=1)
+        if len(steps) > 0:
+            steps = steps.rename(
+                columns={
+                    pylifesnaps.constants._DB_FITBIT_COLLECTION_STEPS_VALUE_COL: pylifesnaps.constants._STEPS_COL
+                }
+            )
+            # Compute daily steps column
+            steps[pylifesnaps.constants._CALENDAR_DATE_COL] = pd.to_datetime(
+                steps[pylifesnaps.constants._ISODATE_COL].dt.strftime("%Y-%m-%d"),
+            )
+            steps[pylifesnaps.constants._STEPS_COL] = steps[
+                pylifesnaps.constants._STEPS_COL
+            ].astype("int64")
+            steps[pylifesnaps.constants._TOTAL_STEPS_COL] = steps.groupby(
+                [pylifesnaps.constants._CALENDAR_DATE_COL]
+            )[pylifesnaps.constants._STEPS_COL].cumsum()
+            steps = steps.drop([pylifesnaps.constants._CALENDAR_DATE_COL], axis=1)
         return steps
 
     def load_time_in_heart_rate_zones(
@@ -1150,11 +1224,12 @@ class LifeSnapsLoader:
             end_date=end_date,
         )
         time_in_hr_zones = self._reorder_datetime_columns(time_in_hr_zones)
-        col_dot_dict = {}
-        for col in time_in_hr_zones:
-            if "." in col:
-                col_dot_dict[col] = col.split(".")[-1]
-        time_in_hr_zones = time_in_hr_zones.rename(columns=col_dot_dict)
+        if len(time_in_hr_zones) > 0:
+            col_dot_dict = {}
+            for col in time_in_hr_zones:
+                if "." in col:
+                    col_dot_dict[col] = col.split(".")[-1]
+            time_in_hr_zones = time_in_hr_zones.rename(columns=col_dot_dict)
         return time_in_hr_zones
 
     def load_very_active_minutes(
